@@ -26,8 +26,8 @@ boolean ProcessEvent(unsigned long IncommingEvent, byte Direction, byte Port, un
   byte x;
   boolean CommandForThisNodo=CheckEventlist(IncommingEvent) || NodoType(IncommingEvent)==NODO_TYPE_COMMAND;
   boolean SetBusyOff=false;
-  
-  digitalWrite(MonitorLedPin,HIGH);           // LED aan als er iets verwerkt wordt  
+
+  digitalWrite(MonitorLedPin,HIGH);           // LED aan als er iets verwerkt wordt
 
   if(CommandForThisNodo && Hold)
     PrintText(Text_09);
@@ -51,7 +51,7 @@ boolean ProcessEvent(unsigned long IncommingEvent, byte Direction, byte Port, un
   // dan de pulsenreeks weergeven en er verder niets mee doen
   if(RawsignalGet)
     {
-    PrintRawSignal();
+    PrintRawSignal(0);
     RawsignalGet=false;
     return true;
     }
@@ -78,18 +78,18 @@ boolean ProcessEvent(unsigned long IncommingEvent, byte Direction, byte Port, un
       if((IncommingEvent&0xffffff00)==command2event(CMD_DELAY,0,0) ||
          (IncommingEvent&0xffffff00)==command2event(CMD_WAITBUSY,0,0)   )
         {
-        HoldTimer=0L; //  Zet de wachttijd op afgelopen;        
+        HoldTimer=0L; //  Zet de wachttijd op afgelopen;
         return true;
         }
-        
+
       // als het event voorkomt in de eventlist of het is een Nodo commando voor deze Nodo, dan is het relevant om in queue te plaatsen
       // als er nog plek is in de queue...
       if(QueuePos<EVENT_QUEUE_MAX)
         {
         QueueEvent[QueuePos]=IncommingEvent;
         QueuePort[QueuePos]=Port;
-        QueuePos++;           
-        }       
+        QueuePos++;
+        }
       else
         TransmitCode(command2event(CMD_ERROR,VALUE_SOURCE_QUEUE,EVENT_QUEUE_MAX),SIGNAL_TYPE_NODO);
       return true;
@@ -97,7 +97,7 @@ boolean ProcessEvent(unsigned long IncommingEvent, byte Direction, byte Port, un
     else // !Hold
       ProcessEvent2(IncommingEvent,Direction,Port,PreviousContent,PreviousPort);
     }
-    
+
   // Verwerk de events die in de queue zijn geplaatst.
   if(QueuePos)
     {
@@ -109,7 +109,7 @@ boolean ProcessEvent(unsigned long IncommingEvent, byte Direction, byte Port, un
       ProcessEvent2(QueueEvent[x],VALUE_DIRECTION_INPUT,QueuePort[x],0,0);      // verwerk binnengekomen event.
       }
     QueuePos=0;
-    }       
+    }
 
   // verzend 'Busy Off;'
   if(SetBusyOff)
@@ -136,10 +136,10 @@ boolean ProcessEvent2(unsigned long IncommingEvent, byte Direction, byte Port, u
     return false; // bij geneste loops ervoor zorgen dat er niet meer dan MACRO_EXECUTION_DEPTH niveaus diep macro's uitgevoerd worden
     }
 
-  // ############# Verwerk event ################  
+  // ############# Verwerk event ################
   // als het een Nodo event is en een geldig commando, dan deze uitvoeren
   if(NodoType(IncommingEvent)==NODO_TYPE_COMMAND)
-    { // Er is een geldig Commando binnengekomen       
+    { // Er is een geldig Commando binnengekomen
     if(!ExecuteCommand(IncommingEvent,Port,PreviousContent,PreviousPort))
       {
       EventlistDepth--;
@@ -147,16 +147,16 @@ boolean ProcessEvent2(unsigned long IncommingEvent, byte Direction, byte Port, u
       }
     }
   else
-    {// Er is een Event binnengekomen  
-    // loop de gehele eventlist langs om te kijken of er een treffer is.    
+    {// Er is een Event binnengekomen
+    // loop de gehele eventlist langs om te kijken of er een treffer is.
     for(x=1; x<=Eventlist_MAX && Eventlist_Read(x,&Event_1,&Event_2); x++)
       {
       // kijk of deze regel een match heeft, zo ja, dan set y=vlag voor uitvoeren
       // de vlag y houdt bij of de wildcard een match heeft met zowel poort als type event. Als deze vlag staat, dan uitvoeren.
-      
+
       // als de Eventlist regel een wildcard is, zo ja, dan set y=vlag voor uitvoeren
       if(((Event_1>>16)&0xff)==CMD_COMMAND_WILDCARD) // commando deel van het event.
-        {        
+        {
         switch(Command) // Command deel van binnengekomen event.
           {
           case CMD_KAKU:
@@ -167,18 +167,18 @@ boolean ProcessEvent2(unsigned long IncommingEvent, byte Direction, byte Port, u
             break;
           }
 
-        y=true;// vlag wildcard         
+        y=true;// vlag wildcard
 
         z=(Event_1>>8)&0xff; // Par1 deel van de Wildcard bevat de poort
         if(z!=VALUE_ALL && z!=Port)
-          y=false;          
+          y=false;
 
         z=Event_1&0xff; // Par2 deel Wildcard bevat type event
         if(z!=VALUE_ALL && z!=w)
           y=false;
         }
       else
-        y=CheckEvent(IncommingEvent,Event_1);      
+        y=CheckEvent(IncommingEvent,Event_1);
 
       if(y)
         {
@@ -187,7 +187,7 @@ boolean ProcessEvent2(unsigned long IncommingEvent, byte Direction, byte Port, u
           PrintEventlistEntry(x,EventlistDepth);
           PrintTerm();
           }
-          
+
         if(NodoType(Event_2)==NODO_TYPE_COMMAND) // is de ontvangen code een uitvoerbaar commando?
           {
           if(!ExecuteCommand(Event_2, VALUE_SOURCE_EVENTLIST,IncommingEvent,Port))
@@ -238,25 +238,25 @@ boolean CheckEventlist(unsigned long Code)
  * Vergelijkt twee events op matching voor uitvoering Eventlist
  \*********************************************************************************************/
 boolean CheckEvent(unsigned long Event, unsigned long MacroEvent)
-  {  
+  {
   byte x;
-  
+
   //  Serial.print("CheckEvent() > Event=0x");Serial.print(Event,HEX);Serial.print(", MacroEvent=0x");Serial.print(MacroEvent,HEX);PrintTerm();//???debugging
-  
+
   // als huidige event exact overeenkomt met het event in de regel uit de Eventlist, dan een match
-  if(MacroEvent==Event)return true; 
+  if(MacroEvent==Event)return true;
 
   // als huidige event (met wegfilterde unit) gelijk is aan MacroEvent, dan een match
   Event&=0x00ffffff;
   MacroEvent&=0x00ffffff;
-  if(MacroEvent==Event)return true; 
+  if(MacroEvent==Event)return true;
 
   // beschouw bij een UserEvent een 0 voor Par1 of Par2 als een wildcard.
   if(((Event>>16)&0xff)==CMD_USER_EVENT)// Command
     {
     if(((Event>>8)&0xff)==0 || ((MacroEvent>>8)&0xff)==0){Event&=0xf0ff00ff;MacroEvent&=0xf0ff00ff;}
     if(((Event   )&0xff)==0 || ((MacroEvent   )&0xff)==0){Event&=0xf0ffff00;MacroEvent&=0xf0ffff00;}
-    if(MacroEvent==Event)return true; 
+    if(MacroEvent==Event)return true;
     }
 
   // is er een match met een CLOCK_EVENT_ALL event?
@@ -267,7 +267,7 @@ boolean CheckEvent(unsigned long Event, unsigned long MacroEvent)
       if((MacroEvent&0x0000ffff)==(Event&0x0000ffff)) // en tijdstippen kloppen
         return true;
     }
-  
+
   return false;
   }
 
@@ -304,12 +304,12 @@ boolean Eventlist_Write(int address, unsigned long Event, unsigned long Action)/
   EEPROM.write(address++,0);
   EEPROM.write(address++,0);
   EEPROM.write(address  ,0);
-  
+
   return true;
   }
-  
+
  /**********************************************************************************************\
- * 
+ *
  * Revision 01, 09-12-2009, P.K.Tonkes@gmail.com
  \*********************************************************************************************/
 boolean Eventlist_Read(int address, unsigned long *Event, unsigned long *Action)// LET OP: eerste adres=1

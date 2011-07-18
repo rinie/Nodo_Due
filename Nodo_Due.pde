@@ -7,7 +7,7 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -279,16 +279,16 @@ PROGMEM const char *CommandText_tabel[]={
   Cmd_40,Cmd_41,Cmd_42,Cmd_43,Cmd_44,Cmd_45,Cmd_46,Cmd_47,Cmd_48,Cmd_49,
   Cmd_50,Cmd_51,Cmd_52,Cmd_53,Cmd_54,Cmd_55,Cmd_56,Cmd_57,Cmd_58,Cmd_59,
   Cmd_60,Cmd_61,Cmd_62,Cmd_63,Cmd_64,Cmd_65,Cmd_66,Cmd_67,Cmd_68,Cmd_69,
-  Cmd_70,Cmd_71,Cmd_72,Cmd_73,Cmd_74,Cmd_75,Cmd_76,Cmd_77,Cmd_78,Cmd_79,          
-  Cmd_80,Cmd_81,Cmd_82,Cmd_83,Cmd_84,Cmd_85,Cmd_86,Cmd_87,Cmd_88,Cmd_89,          
-  Cmd_90,Cmd_91,Cmd_92,Cmd_93,Cmd_94,Cmd_95,Cmd_96,Cmd_97,Cmd_98,Cmd_99,          
-  Cmd_100,Cmd_101};          
+  Cmd_70,Cmd_71,Cmd_72,Cmd_73,Cmd_74,Cmd_75,Cmd_76,Cmd_77,Cmd_78,Cmd_79,
+  Cmd_80,Cmd_81,Cmd_82,Cmd_83,Cmd_84,Cmd_85,Cmd_86,Cmd_87,Cmd_88,Cmd_89,
+  Cmd_90,Cmd_91,Cmd_92,Cmd_93,Cmd_94,Cmd_95,Cmd_96,Cmd_97,Cmd_98,Cmd_99,
+  Cmd_100,Cmd_101};
 
-PROGMEM prog_uint16_t Sunrise[]={         
+PROGMEM prog_uint16_t Sunrise[]={
   528,525,516,503,487,467,446,424,401,378,355,333,313,295,279,268,261,259,263,271,283,297,312,329,
   345,367,377,394,411,428,446,464,481,498,512,522,528,527};
-      
-PROGMEM prog_uint16_t Sunset[]={          
+
+PROGMEM prog_uint16_t Sunset[]={
   999,1010,1026,1044,1062,1081,1099,1117,1135,1152,1169,1186,1203,1219,1235,1248,1258,1263,1264,1259,
   1249,1235,1218,1198,1177,1154,1131,1107,1084,1062,1041,1023,1008,996,990,989,993,1004};
 
@@ -316,7 +316,7 @@ PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,31
 #define Eventlist_MAX              120 // aantal events dat de lijst bevat in het EEPROM geheugen van de ATMega328. Iedere event heeft 8 bytes nodig. eerste adres is 0
 #define USER_VARIABLES_MAX          15 // aantal beschikbare gebruikersvariabelen voor de user.
 #define RAW_BUFFER_SIZE            200 // Maximaal aantal te ontvangen bits*2
-#define UNIT_MAX                    15 
+#define UNIT_MAX                    15
 #define MACRO_EXECUTION_DEPTH       10 // maximale nesting van macro's.
 
 #define SIGNAL_TYPE_UNKNOWN          0
@@ -327,9 +327,9 @@ PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,31
 #define NODO_TYPE_EVENT              1
 #define NODO_TYPE_COMMAND            2
 
-#define BAUD                     19200 // Baudrate voor seriële communicatie.
-#define SERIAL_TERMINATOR_1       0x0A // Met dit teken wordt een regel afgesloten. 0x0A is een linefeed <LF>, default voor EventGhost
-#define SERIAL_TERMINATOR_2       0x00 // Met dit teken wordt een regel afgesloten. 0x0D is een Carriage Return <CR>, 0x00 = niet in gebruik.
+#define BAUD                     57600 // Baudrate voor seriële communicatie. RKR 19200->57600 Abd CR/LF instead of just LF
+#define SERIAL_TERMINATOR_1       0x0D // Met dit teken wordt een regel afgesloten. 0x0A is een linefeed <LF>, default voor EventGhost
+#define SERIAL_TERMINATOR_2       0x0A // Met dit teken wordt een regel afgesloten. 0x0D is een Carriage Return <CR>, 0x00 = niet in gebruik.
 
 #define EVENT_PART_COMMAND           1
 #define EVENT_PART_TYPE              2
@@ -347,7 +347,7 @@ PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,31
 
 #define DISPLAY_RESET               DISPLAY_UNIT + DISPLAY_SOURCE + DISPLAY_DIRECTION + DISPLAY_TAG
 
-// settings voor verzenden en ontvangen van IR/RF 
+// settings voor verzenden en ontvangen van IR/RF
 #define ENDSIGNAL_TIME          1500 // Dit is de tijd in milliseconden waarna wordt aangenomen dat het ontvangen één reeks signalen beëindigd is
 #define SIGNAL_TIMEOUT_RF       5000 // na deze tijd in uSec. wordt één RF signaal als beëindigd beschouwd.
 #define SIGNAL_TIMEOUT_IR      10000 // na deze tijd in uSec. wordt één IR signaal als beëindigd beschouwd.
@@ -414,10 +414,10 @@ void(*Reset)(void)=0;                               //reset functie op adres 0
 uint8_t RFbit,RFport,IRbit,IRport;
 struct RealTimeClock {byte Hour,Minutes,Seconds,Date,Month,Day,Daylight; int Year,DaylightSaving;}Time;
 
-void setup() 
-  {    
+void setup()
+  {
   byte x;
-    
+
   pinMode(IR_ReceiveDataPin,INPUT);
   pinMode(RF_ReceiveDataPin,INPUT);
   pinMode(RF_TransmitDataPin,OUTPUT);
@@ -426,13 +426,13 @@ void setup()
   pinMode(IR_TransmitDataPin,OUTPUT);
   pinMode(MonitorLedPin,OUTPUT);
   pinMode(BuzzerPin, OUTPUT);
-  
+
   digitalWrite(IR_ReceiveDataPin,HIGH);  // schakel pull-up weerstand in om te voorkomen dat er rommel binnenkomt als pin niet aangesloten
   digitalWrite(RF_ReceiveDataPin,HIGH);  // schakel pull-up weerstand in om te voorkomen dat er rommel binnenkomt als pin niet aangesloten
   digitalWrite(RF_ReceivePowerPin,HIGH); // Spanning naar de RF ontvanger aan.
 
   RFbit=digitalPinToBitMask(RF_ReceiveDataPin);
-  RFport=digitalPinToPort(RF_ReceiveDataPin);  
+  RFport=digitalPinToPort(RF_ReceiveDataPin);
   IRbit=digitalPinToBitMask(IR_ReceiveDataPin);
   IRport=digitalPinToPort(IR_ReceiveDataPin);
 
@@ -440,16 +440,16 @@ void setup()
   Serial.begin(BAUD);  // Initialiseer de seriële poort
   IR38Khz_set();       // Initialiseet de 38Khz draaggolf voor de IR-zender.
   LoadSettings();      // laad alle settings zoals deze in de EEPROM zijn opgeslagen
-  
+
   if(S.Version!=VERSION)ResetFactory(); // Als versienummer in EEPROM niet correct is, dan een ResetFactory.
-  
+
   // initialiseer de Wired in- en uitgangen
   for(x=0;x<=3;x++)
     {
     pinMode(WiredDigitalOutputPin_1+x,OUTPUT); // definieer Arduino pin's voor Wired-Out
     digitalWrite(14+WiredAnalogInputPin_1+x,S.WiredInputPullUp[x]?HIGH:LOW);// Zet de pull-up weerstand van 20K voor analoge ingangen. Analog-0 is gekoppeld aan Digital-14
     }
-    
+
   //Zorg ervoor dat er niet direct na een boot een CMD_CLOCK_DAYLIGHT event optreedt
   ClockRead();
   SetDaylight();
@@ -458,15 +458,15 @@ void setup()
   // Zet statussen WIRED_IN op hoog, anders wordt direct wij het opstarten vier maal een event gegenereerd omdat de pull-up weerstand analoge de waarden op FF zet
   for(x=0;x<4;x++){WiredInputStatus[x]=true;}
 
-  PrintWelcome(); 
+  PrintWelcome();
   ProcessEvent(command2event(CMD_BOOT_EVENT,0,0),VALUE_DIRECTION_INTERNAL,VALUE_SOURCE_SYSTEM,0,0);  // Voer het 'Boot' event uit.
   SerialHold(false);    // Zend een X-Off zodat de nodo geen seriele tekens ontvangt die nog niet verwerkt kunnen worden
   }
 
-void loop() 
+void loop()
   {
   int x,y,z;
-  
+
   SerialHold(false); // er mogen weer tekens binnen komen van SERIAL
 
   // hoofdloop: scannen naar signalen
@@ -483,7 +483,7 @@ void loop()
         Hold=false;
         return;
         }
-        
+
       // als in de hold-modus met reden Busy commando EN de er zijn geen Nodo's meer met status Busy, dan geneste aanroop loop() verlaten.
       if(Hold==CMD_BUSY && (!BusyNodo || HoldTimer<millis()))
         {
@@ -513,11 +513,11 @@ void loop()
     // IR: *************** kijk of er data staat op IR en genereer een event als er een code ontvangen is **********************
     do
       {
-      if((*portInputRegister(IRport)&IRbit)==0)// Kijk if er iets op de IR poort binnenkomt. (Pin=LAAG als signaal in de ether). 
+      if((*portInputRegister(IRport)&IRbit)==0)// Kijk if er iets op de IR poort binnenkomt. (Pin=LAAG als signaal in de ether).
         {
-        if(FetchSignal(IR_ReceiveDataPin,LOW,S.AnalyseTimeOut))// Als het een duidelijk IR signaal was
+        if(FetchSignal(IR_ReceiveDataPin,LOW,S.AnalyseTimeOut, 0))// Als het een duidelijk IR signaal was
           {
-          Content=AnalyzeRawSignal(); // Bereken uit de tabel met de pulstijden de 32-bit code. 
+          Content=AnalyzeRawSignal(); // Bereken uit de tabel met de pulstijden de 32-bit code.
           if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
             {
             StaySharpTimer=millis()+SHARP_TIME;
@@ -532,16 +532,16 @@ void loop()
           }
         }
       }while(StaySharpTimer>millis());
-  
-  
+
+
     // RF: *************** kijk of er data start op RF en genereer een event als er een code ontvangen is **********************
     do// met StaySharp wordt focus gezet op luisteren naar RF, doordat andere input niet wordt opgepikt
       {
-      if((*portInputRegister(RFport)&RFbit)==RFbit)// Kijk if er iets op de RF poort binnenkomt. (Pin=HOOG als signaal in de ether). 
+      if((*portInputRegister(RFport)&RFbit)==RFbit)// Kijk if er iets op de RF poort binnenkomt. (Pin=HOOG als signaal in de ether).
         {
-        if(FetchSignal(RF_ReceiveDataPin,HIGH,SIGNAL_TIMEOUT_RF))// Als het een duidelijk RF signaal was
+        if(FetchSignal(RF_ReceiveDataPin,HIGH,SIGNAL_TIMEOUT_RF, 0))// Als het een duidelijk RF signaal was
           {
-          Content=AnalyzeRawSignal(); // Bereken uit de tabel met de pulstijden de 32-bit code. 
+          Content=AnalyzeRawSignal(); // Bereken uit de tabel met de pulstijden de 32-bit code.
           if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
             {
             StaySharpTimer=millis()+SHARP_TIME;
@@ -556,7 +556,7 @@ void loop()
           }
         }
       }while(millis()<StaySharpTimer);
-     
+
     // 2: niet tijdkritische processen die periodiek uitgevoerd moeten worden
     if(LoopIntervalTimer_2<millis()) // lange interval
       {
@@ -566,12 +566,12 @@ void loop()
       Content=ClockRead(); // Lees de Real Time Clock waarden in de struct Time
       if(CheckEventlist(Content) && EventTimeCodePrevious!=Content)
         {
-        EventTimeCodePrevious=Content; 
+        EventTimeCodePrevious=Content;
         ProcessEvent(Content,VALUE_DIRECTION_INTERNAL,VALUE_SOURCE_CLOCK,0,0);      // verwerk binnengekomen event.
         }
       else
         Content=0L;
-              
+
       // DAYLIGHT: **************** Check zonsopkomst & zonsondergang  ***********************
       SetDaylight();
       if(Time.Daylight!=DaylightPrevious)// er heeft een zonsondergang of zonsopkomst event voorgedaan
@@ -587,7 +587,7 @@ void loop()
       {
       LoopIntervalTimer_1=millis()+Loop_INTERVAL_1; // reset de timer
 
-      // TIMER: **************** Genereer event als één van de Timers voor de gebruiker afgelopen is ***********************    
+      // TIMER: **************** Genereer event als één van de Timers voor de gebruiker afgelopen is ***********************
       for(x=0;x<TIMER_MAX;x++)
         {
         if(UserTimer[x]!=0L)// als de timer actief is
@@ -611,7 +611,7 @@ void loop()
           ProcessEvent(Content,VALUE_DIRECTION_INTERNAL,VALUE_SOURCE_VARIABLE,0,0);      // verwerk binnengekomen event.
           }
         }
-        
+
       // WIRED: *************** kijk of statussen gewijzigd zijn op WIRED **********************
       if(WiredCounter<3)
         WiredCounter++;
@@ -621,7 +621,7 @@ void loop()
       // als de huidige waarde groter dan threshold EN de vorige keer was dat nog niet zo DAN verstuur code
       z=false; // vlag om te kijken of er een wijziging is die verzonden moet worden.
       y=WiredAnalog(WiredCounter);
-     
+
       if(y>S.WiredInputThreshold[WiredCounter]+S.WiredInputSmittTrigger[WiredCounter] && !WiredInputStatus[WiredCounter])
         {
         WiredInputStatus[WiredCounter]=true;
@@ -634,11 +634,11 @@ void loop()
         z=true;
         }
 
-      if(z)// er is een verandering van status op de ingang. 
-        {    
+      if(z)// er is een verandering van status op de ingang.
+        {
         Content=command2event(CMD_WIRED_IN_EVENT,WiredCounter+1,WiredInputStatus[WiredCounter]?VALUE_ON:VALUE_OFF);
         ProcessEvent(Content,VALUE_DIRECTION_INPUT,VALUE_SOURCE_WIRED,0,0);      // verwerk binnengekomen event.
         }
       }// korte interval
-    }// // while 
+    }// // while
   }
