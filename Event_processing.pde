@@ -51,8 +51,16 @@ boolean ProcessEvent(unsigned long IncommingEvent, byte Direction, byte Port, un
   // dan de pulsenreeks weergeven en er verder niets mee doen
   if(RawsignalGet)
     {
+#ifndef RAWSIGNAL_MULTI
     PrintRawSignal(0);
+#else
+	for(int RawSignalStart = 0; RawSignal[RawSignalStart] != 0; RawSignalStart = RawSignalStart + RawSignal[RawSignalStart] + 1) {
+		PrintRawSignal(RawSignalStart);
+	}
+#endif
+#ifndef RAWSIGNAL_TOGGLE // RKR repeat until toggle off
     RawsignalGet=false;
+#endif
     return true;
     }
 

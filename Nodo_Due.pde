@@ -355,7 +355,8 @@ PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,31
 #define MIN_PULSE_LENGTH         100 // pulsen korter dan deze tijd uSec. worden als stoorpulsen beschouwd.
 #define MIN_RAW_PULSES            16 // =8 bits. Minimaal aantal ontvangen bits*2 alvorens cpu tijd wordt besteed aan decodering, etc. Zet zo hoog mogelijk om CPU-tijd te sparen en minder 'onzin' te ontvangen.
 #define SHARP_TIME               500 // tijd in milliseconden dat de nodo gefocust moet blijven luisteren naar één dezelfde poort na binnenkomst van een signaal
-
+#define RAWSIGNAL_TOGGLE	// RKR instead of just one rawsignal, repeat until you send RawSignalGet; again...
+#define RAWSIGNAL_MULTI		// RKR Rawsignal can be multiple signals: <count> <timinig data> <count> <timing data> etc...
 //****************************************************************************************************************************************
 
 struct Settings
@@ -396,7 +397,7 @@ byte QueuePort[EVENT_QUEUE_MAX];
 byte QueuePos;
 
 // Overige globals
-boolean Simulate,RawsignalGet;
+boolean Simulate,RawsignalGet=false;
 boolean WiredInputStatus[4],WiredOutputStatus[4];   // Wired variabelen
 unsigned int RawSignal[RAW_BUFFER_SIZE+2];          // Tabel met de gemeten pulsen in microseconden. eerste waarde is het aantal bits*2
 int BusyNodo;                                       // in deze variabele de status van het event 'Busy' van de betreffende units 1 t/m 15. bit-1 = unit-1
@@ -517,6 +518,9 @@ void loop()
         {
         if(FetchSignal(IR_ReceiveDataPin,LOW,S.AnalyseTimeOut, 0))// Als het een duidelijk IR signaal was
           {
+#ifdef RAWSIGNAL_MULTI
+			RawSignal[RawSignal[0] + 1] = 0;  // next count 0
+#endif
           Content=AnalyzeRawSignal(); // Bereken uit de tabel met de pulstijden de 32-bit code.
           if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
             {
@@ -533,30 +537,60 @@ void loop()
         }
       }while(StaySharpTimer>millis());
 
+	if (!RawsignalGet) {
+		// RF: *************** kijk of er data start op RF en genereer een event als er een code ontvangen is **********************
+		do// met StaySharp wordt focus gezet op luisteren naar RF, doordat andere input niet wordt opgepikt
+		  {
+		  if((*portInputRegister(RFport)&RFbit)==RFbit)// Kijk if er iets op de RF poort binnenkomt. (Pin=HOOG als signaal in de ether).
+			{
+			if(FetchSignal(RF_ReceiveDataPin,HIGH,SIGNAL_TIMEOUT_RF, 0))// Als het een duidelijk RF signaal was
+			  {
+	#ifdef RAWSIGNAL_MULTI
+				RawSignal[RawSignal[0] + 1] = 0; // next count 0
+	#endif
+			  Content=AnalyzeRawSignal(); // Bereken uit de tabel met de pulstijden de 32-bit code.
+			  if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
+				{
+				StaySharpTimer=millis()+SHARP_TIME;
+				if(Content==Checksum && (millis()>SupressRepeatTimer || Content!=ContentPrevious))// tweede maal ontvangen als checksum
+				   {
+				   SupressRepeatTimer=millis()+ENDSIGNAL_TIME; // zodat herhalingen niet opnieuw opgepikt worden
+				   ProcessEvent(Content,VALUE_DIRECTION_INPUT,VALUE_SOURCE_RF,0,0); // verwerk binnengekomen event.
+				   ContentPrevious=Content;
+				   }
+				Checksum=Content;
+				}
+			  }
+			}
+		  }while(millis()<StaySharpTimer);
+	}
+	else { // RKR RawsignalGet measure repetitions
+		int RawSignalStart = 0;
 
-    // RF: *************** kijk of er data start op RF en genereer een event als er een code ontvangen is **********************
-    do// met StaySharp wordt focus gezet op luisteren naar RF, doordat andere input niet wordt opgepikt
-      {
-      if((*portInputRegister(RFport)&RFbit)==RFbit)// Kijk if er iets op de RF poort binnenkomt. (Pin=HOOG als signaal in de ether).
-        {
-        if(FetchSignal(RF_ReceiveDataPin,HIGH,SIGNAL_TIMEOUT_RF, 0))// Als het een duidelijk RF signaal was
-          {
-          Content=AnalyzeRawSignal(); // Bereken uit de tabel met de pulstijden de 32-bit code.
-          if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
-            {
-            StaySharpTimer=millis()+SHARP_TIME;
-            if(Content==Checksum && (millis()>SupressRepeatTimer || Content!=ContentPrevious))// tweede maal ontvangen als checksum
-               {
-               SupressRepeatTimer=millis()+ENDSIGNAL_TIME; // zodat herhalingen niet opnieuw opgepikt worden
-               ProcessEvent(Content,VALUE_DIRECTION_INPUT,VALUE_SOURCE_RF,0,0); // verwerk binnengekomen event.
-               ContentPrevious=Content;
-               }
-            Checksum=Content;
-            }
-          }
-        }
-      }while(millis()<StaySharpTimer);
-
+		// RF: *************** kijk of er data start op RF en genereer een event als er een code ontvangen is **********************
+		do// met StaySharp wordt focus gezet op luisteren naar RF, doordat andere input niet wordt opgepikt
+		  {
+		  while((*portInputRegister(RFport)&RFbit)==RFbit)// Kijk if er iets op de RF poort binnenkomt. (Pin=HOOG als signaal in de ether).
+			{
+			if(FetchSignal(RF_ReceiveDataPin,HIGH,SIGNAL_TIMEOUT_RF, RawSignalStart))// Als het een duidelijk RF signaal was
+			  {
+					RawSignalStart = RawSignalStart + RawSignal[RawSignalStart] + 1;
+					StaySharpTimer=millis()+SHARP_TIME;
+			}
+			else {
+				break;
+			}
+		  }
+		} while(millis()<StaySharpTimer);
+	    RawSignal[RawSignalStart]=0; // next count 0
+	    if (RawSignalStart > 0){
+			Content=AnalyzeRawSignal(); // Bereken uit de tabel met de pulstijden de 32-bit code.
+			if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
+			{
+			   ProcessEvent(Content,VALUE_DIRECTION_INPUT,VALUE_SOURCE_RF,0,0); // verwerk binnengekomen event.
+			}
+		}
+	}
     // 2: niet tijdkritische processen die periodiek uitgevoerd moeten worden
     if(LoopIntervalTimer_2<millis()) // lange interval
       {

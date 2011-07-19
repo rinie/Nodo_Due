@@ -532,8 +532,8 @@ void PrintText(prog_char* text)
   do
     {
     buffer[x]=pgm_read_byte_near(text+x);
-    }while(buffer[x++]!=0);
-
+    }while(x < 60 && (buffer[x++]!=0)); // RKR prevent overflow
+  buffer[59] = 0;
   Serial.print(buffer);
   }
 

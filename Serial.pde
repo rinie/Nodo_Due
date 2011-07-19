@@ -4,7 +4,7 @@
     Nodo Due is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.  
+    (at your option) any later version.
 
     Nodo Due is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,7 +18,7 @@
 
 /*********************************************************************************************\
 * Deze functie dient alleen aangeroepen te worden als er tekens beschikbaar zijn op de
-* seriële poort. Deze functie haalt de tekens op, parsed commando en parameters er uit en 
+* seriële poort. Deze functie haalt de tekens op, parsed commando en parameters er uit en
 * maakt hier een Event van. Als het event een MMI afwijkend commando is of een commando
 * waarvan het niet wenselijk is dat dit via RF/IR ontvangen en verwerkt mag worden,
 * dan wordt deze tevens uitgevoerd. Alle overige events & commando's worden ter verdere
@@ -33,26 +33,26 @@ unsigned long Receive_Serial(void)
   byte x,y;
   byte Par1,Par2,Cmd;
   boolean error=false;
-  
+
   // Hier aangekomen staan er tekens klaar. Haal op van seriële poort en maak er een Event van.
   Event=SerialReadEvent();
 
   // kijk of het een Nodo-event is.
   if(((Event>>28)&0xf)!=SIGNAL_TYPE_NODO)
     return Event; // HEX-waarde. verdere uitvoer hoeft niet hier plaats te vinden.
-    
+
   // Als het een commando is, dan checken of er geldige parameters zijn opgegeven
   Cmd=(Event>>16)&0xff;
   error=CommandError(Event);
   if(error)
     {
-    if(error==ERROR_COMMAND) // commando bestaat niet 
-        TransmitCode(command2event(CMD_ERROR,VALUE_COMMAND,0),SIGNAL_TYPE_NODO);    
+    if(error==ERROR_COMMAND) // commando bestaat niet
+        TransmitCode(command2event(CMD_ERROR,VALUE_COMMAND,0),SIGNAL_TYPE_NODO);
     else // commando bestaat maar parameters niet correct
         TransmitCode(command2event(CMD_ERROR,Cmd,error),SIGNAL_TYPE_NODO);
     return 0L;
     }
-    
+
   Par1=(Event>>8)&0xff;
   Par2=(Event)&0xff;
 
@@ -64,10 +64,10 @@ unsigned long Receive_Serial(void)
         {
         PrintEventlistEntry(x,0);
         PrintTerm();
-        }   
+        }
       PrintLine();
       break;
-   
+
     case CMD_EVENTLIST_WRITE:
       // haal event en actie op
       Event=SerialReadEvent();
@@ -76,40 +76,44 @@ unsigned long Receive_Serial(void)
         TransmitCode(command2event(CMD_ERROR,CMD_EVENTLIST_WRITE,1),SIGNAL_TYPE_NODO);
         break;
         }
-        
+
       Action=SerialReadEvent();
       if(!Action)
         {
         TransmitCode(command2event(CMD_ERROR,CMD_EVENTLIST_WRITE,2),SIGNAL_TYPE_NODO);
         break;
         }
-                
-      // schrijf weg in eventlist      
+
+      // schrijf weg in eventlist
       if(!Eventlist_Write(0,Event,Action))
         {
         error=true;
         Par1=CMD_EVENTLIST_WRITE;
         Par2=VALUE_SOURCE_EVENTLIST;
         }
-      break;        
+      break;
 
-    case CMD_DIVERT:   
+    case CMD_DIVERT:
       Action=(SerialReadEvent()&0x00ffffff) | ((unsigned long)(Par1))<<24 | ((unsigned long)(SIGNAL_TYPE_NODO))<<28; // Event_1 is het te forwarden event voorzien van nieuwe bestemming unit
       x=(Action>>24)&0x0f; // unit
       if(x==0 || x==S.Unit)
         ProcessEvent(Action,VALUE_DIRECTION_INPUT,VALUE_SOURCE_SERIAL,0,0);      // verwerk binnengekomen event.
       if(x!=S.Unit)
         TransmitCode(Action,SIGNAL_TYPE_NODO);
-      break;        
+      break;
 
     case CMD_RAWSIGNAL_GET:
+#ifndef RAWSIGNAL_TOGGLE // RKR repeat until toggle off
       RawsignalGet=true;
-      break;        
+#else
+	RawsignalGet=(RawsignalGet) ? false : true; // invert
+#endif
+      break;
 
     case CMD_SIMULATE:
       Simulate=Par1==VALUE_ON?true:false;;
-      break;        
- 
+      break;
+
     case CMD_DISPLAY:
       {
       switch(Par1)
@@ -146,14 +150,14 @@ unsigned long Receive_Serial(void)
         S.Display|=x;
       else
         S.Display&=~x;
-        
+
       if(Par1==CMD_RESET)
         S.Display=DISPLAY_RESET;
-        
+
       SaveSettings();
       break;
       }
-       
+
     case CMD_UNIT:
       S.Unit=Par1;
       if(Par1>1)
@@ -169,10 +173,10 @@ unsigned long Receive_Serial(void)
       SaveSettings();
       FactoryEventlist();
       Reset();
-  
+
     case CMD_RESET:
         ResetFactory();
-        
+
     case CMD_RAWSIGNAL_PUT:
       y=1;
       do
@@ -184,11 +188,11 @@ unsigned long Receive_Serial(void)
       Event=AnalyzeRawSignal();
       TransmitCode(Event,SIGNAL_TYPE_UNKNOWN);
       break;
-   
+
     case CMD_EVENTLIST_ERASE:
       Eventlist_Write(1,0L,0L); // maak de eventlist leeg.
-      break;        
-          
+      break;
+
     default:
       // het is een geldig commando, maar verwerking vond niet hier plaats.
       return Event; // verdere afhandeling door ExecuteCommand()
@@ -199,7 +203,7 @@ unsigned long Receive_Serial(void)
 
 /*********************************************************************************************\
 * Hier aangekomen staan er tekens klaar op de seriële poort
-* Haal deze op en stel een Event samen. Sommige commando's hebben (helaas) een afwijkende MMI 
+* Haal deze op en stel een Event samen. Sommige commando's hebben (helaas) een afwijkende MMI
 * Of behandeling. De geldigheid van het commando wordt eveneens getoetst.
 \*********************************************************************************************/
 unsigned long SerialReadEvent()
@@ -207,7 +211,7 @@ unsigned long SerialReadEvent()
   unsigned long Event;
   byte x,y,z;
   int Par1,Par2;
-  
+
   // haal 1e blok gegevens op.
   x=SerialReadBlock(SerialBuffer);
   if(SerialBuffer[0]==0)
@@ -217,7 +221,7 @@ unsigned long SerialReadEvent()
   Event=str2val(SerialBuffer);
   if(Event>0xff)
     return SetEventType(Event,SIGNAL_TYPE_UNKNOWN); // alle waarden groter dan 255 mogen gelijk verwerkt worden als een event.
-    
+
   // invoer was geen getal. Haal uit de invoer de code van het tekst commando
   y=str2cmd(SerialBuffer);
 
@@ -229,7 +233,7 @@ unsigned long SerialReadEvent()
     PrintTerm();
     return 0L;
     }
-    
+
   if(y)
     {
     Par1=0;
@@ -245,7 +249,7 @@ unsigned long SerialReadEvent()
         Event=str2val(SerialBuffer); // bevat waarde op de MMI positie van Par1
         if(Event>255)
           {
-          Event=(Event&0x0fffffff) | (((unsigned long)SIGNAL_TYPE_NEWKAKU)<<28); //  // Niet Par1 want NewKAKU kan als enige op de Par1 plaats een 28-bit waarde hebben. Hoogste nible wissen en weer vullen met type NewKAKU        
+          Event=(Event&0x0fffffff) | (((unsigned long)SIGNAL_TYPE_NEWKAKU)<<28); //  // Niet Par1 want NewKAKU kan als enige op de Par1 plaats een 28-bit waarde hebben. Hoogste nible wissen en weer vullen met type NewKAKU
           if(x)
             {
             x=SerialReadBlock(SerialBuffer);
@@ -255,7 +259,7 @@ unsigned long SerialReadEvent()
           }
         else
           {
-          Par1=Event;        
+          Par1=Event;
           if(x)
             {
             x=SerialReadBlock(SerialBuffer);
@@ -264,7 +268,7 @@ unsigned long SerialReadEvent()
           }
         }
       }
-  
+
     // KAKU events hebben een afwijkende MMI voor invoer. Par1 kan nl. A0..P16 bevatten.
     if(y==CMD_KAKU || y==CMD_SEND_KAKU)
       {// de string is een KAKU commando. Haal bij het commando behorende parameters op.
@@ -280,7 +284,7 @@ unsigned long SerialReadEvent()
           }
         }
       }
-  
+
     if(y>RANGE_VALUE && y<=COMMAND_MAX)
       {// de string valt in de reeks van een commando of event. Haal bij het commando behorende parameters op.
       if(x)
@@ -304,10 +308,10 @@ unsigned long SerialReadEvent()
     return Event; // verdere check hoeft niet plaats te vinden.
   return 0L;
   }
-   
-   
+
+
 /**********************************************************************************************\
- * Haalt uit een seriële reeks met formaat 'aaaa,bbbb,cccc,dddd;' de blokken tekst 
+ * Haalt uit een seriële reeks met formaat 'aaaa,bbbb,cccc,dddd;' de blokken tekst
  * geeft een 1 terug als blok afgesloten met een komma of spatie (en er nog meerdere volgen)
  * geeft een 0 terug als hele reeks is afgesloten met een '\n' of een ';'
  \*********************************************************************************************/
@@ -316,8 +320,8 @@ byte SerialReadBlock(char *SerialString)
   {
   byte StringLength,SerialByte,x;
   unsigned long TimeOutTimer;
-  
-  // op moment hier aangekomen staat er minimaal een byte klaar in de seriele buffer  
+
+  // op moment hier aangekomen staat er minimaal een byte klaar in de seriele buffer
   SerialHold(false);
   x=0;
   StringLength=0;
@@ -349,7 +353,7 @@ byte SerialReadBlock(char *SerialString)
 void SerialHold(boolean x)
   {
   static boolean previous=true;
-  
+
   if(x==previous)
     return;
   else
