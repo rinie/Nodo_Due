@@ -185,7 +185,7 @@ unsigned long Receive_Serial(void)
         RawSignal[y++]=str2val(SerialBuffer);
         }while(x && y<RAW_BUFFER_SIZE);
       RawSignal[0]=y-1;
-      Event=AnalyzeRawSignal();
+      Event=AnalyzeRawSignal(0);
       TransmitCode(Event,SIGNAL_TYPE_UNKNOWN);
       break;
 

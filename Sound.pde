@@ -27,11 +27,15 @@
  * Revision 01, 13-02-2009, P.K.Tonkes@gmail.com
  \*********************************************************************************************/
 
-void Beep(int frequency, int duration)//Herz,millisec 
+void Beep(int frequency, int duration)//Herz,millisec
   {
+	  if (!S.EnableSound) {
+	  	return;
+	}
+
   long halfperiod=500000L/frequency;
   long loops=(long)duration*frequency/(long)1000;
-  for(loops;loops>0;loops--) 
+  for(loops;loops>0;loops--)
     {
     digitalWrite(BuzzerPin, HIGH);
     delayMicroseconds(halfperiod);
@@ -39,7 +43,7 @@ void Beep(int frequency, int duration)//Herz,millisec
     delayMicroseconds(halfperiod);
     }
   }
- 
+
  /**********************************************************************************************\
  * Geeft een belsignaal.
  * Revision 01, 09-03-2009, P.K.Tonkes@gmail.com
@@ -50,7 +54,7 @@ void Alarm(int Variant,int Duration)
    if(Duration==0)Duration=1;
 
    switch (Variant)
-    { 
+    {
     case 1:// four beeps
       for(y=1;y<=(Duration>1?Duration:1);y++)
         {
@@ -62,7 +66,7 @@ void Alarm(int Variant,int Duration)
         delay(100);
         Beep(3000,30);
         delay(1000);
-        }    
+        }
       break;
 
     case 2: // whoop up
@@ -70,7 +74,7 @@ void Alarm(int Variant,int Duration)
         {
         for(x=1;x<=50;x++)
             Beep(250*x/4,20);
-        }          
+        }
       break;
 
     case 3: // whoop down
@@ -78,7 +82,7 @@ void Alarm(int Variant,int Duration)
         {
         for(x=50;x>0;x--)
             Beep(250*x/4,20);
-        }          
+        }
       break;
 
     case 4:// S.O.S.
@@ -104,14 +108,14 @@ void Alarm(int Variant,int Duration)
           if(Duration>1)delay(500);
         }
       break;
-          
+
      case 5:// ding-dong
        for(x=0;x<Duration;x++)
          {
          if(x>0)delay(2000);
          Beep(1500,500);
          Beep(1200,500);
-         }    
+         }
        break;
 
     case 6: // phone ring
@@ -126,7 +130,7 @@ void Alarm(int Variant,int Duration)
         Beep(1500,100);
         Beep(1000,100);
         break;
-                       
+
     default:// beep
        Beep(2000,20*(Duration>1?Duration:1));
        break;

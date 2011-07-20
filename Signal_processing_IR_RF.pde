@@ -21,16 +21,16 @@
 #define NODO_PULSE_1                   1500   // PWM: Tijdsduur van de puls bij verzenden van een '1' in uSec. (3x NODO_PULSE_0)
 #define NODO_SPACE                      500   // PWM: Tijdsduur van de space tussen de bitspuls bij verzenden van een '1' in uSec.
 
-unsigned long AnalyzeRawSignal(void)
+unsigned long AnalyzeRawSignal(int RawIndexStart)
   {
   unsigned long Code=0L;
 
-  if(RawSignal[0]==RAW_BUFFER_SIZE)return 0L;     // Als het signaal een volle buffer beslaat is het zeer waarschijnlijk ruis.
+  if(RawSignal[RawIndexStart]==RAW_BUFFER_SIZE)return 0L;     // Als het signaal een volle buffer beslaat is het zeer waarschijnlijk ruis.
 
-  if(!(Code=RawSignal_2_Nodo()))
-    if(!(Code=RawSignal_2_KAKU()))
-      if(!(Code=RawSignal_2_NewKAKU()))
-        Code=RawSignal_2_32bit();
+  if(!(Code=RawSignal_2_Nodo(RawIndexStart)))
+    if(!(Code=RawSignal_2_KAKU(RawIndexStart)))
+      if(!(Code=RawSignal_2_NewKAKU(RawIndexStart)))
+        Code=RawSignal_2_32bit(RawIndexStart, false);
 
   return Code;   // Geen Nodo, KAKU of NewKAKU code. Genereer uit het onbekende signaal een (vrijwel) unieke 32-bit waarde uit.
   }
@@ -39,21 +39,21 @@ unsigned long AnalyzeRawSignal(void)
 * Deze routine berekent de uit een RawSignal een NODO code
 * Geeft een false retour als geen geldig NODO signaal
 \*********************************************************************************************/
-unsigned long RawSignal_2_Nodo(void)
+unsigned long RawSignal_2_Nodo(int RawIndexStart)
   {
   unsigned long bitstream=0L;
   int x,y,z;
-
+  int xEnd = RawSignal[RawIndexStart] + RawIndexStart;
   // nieuwe NODO signaal bestaat altijd uit start bit + 32 bits. Ongelijk aan 66, dan geen Nodo signaal
-  if (RawSignal[0]!=66)return 0L;
+  if (RawSignal[RawIndexStart]!=66)return 0L;
 
-  x=3; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e pulslengte
+  x=3 + RawIndexStart; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e pulslengte
   do{
     if(RawSignal[x]>NODO_PULSE_MID)
       bitstream|=(long)(1L<<z); //LSB in signaal wordt  als eerste verzonden
     x+=2;
     z++;
-    }while(x<RawSignal[0]);
+    }while(x<xEnd);
 
   if(((bitstream>>28)&0xf) == SIGNAL_TYPE_NODO)// is het type-nibble uit het signaal gevuld met de aanduiding NODO ?
     return bitstream;
@@ -70,28 +70,37 @@ unsigned long RawSignal_2_Nodo(void)
  * meegenomen zodat deze functie geschikt is voor PWM, PDM en Bi-Pase modulatie.
  * LET OP: Het betreft een unieke hash-waarde zonder betekenis van waarde.
  \*********************************************************************************************/
-unsigned long RawSignal_2_32bit(void)
+unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint)
   {
   int x,y,z;
   int Counter_pulse=0,Counter_space=0;
   int MinPulse=0xffff;
   int MinSpace=0xffff;
+  int MaxPulse=0x0;//RKR
+  int MaxSpace=0x0;
+  int MinPulseP;
+  int MinSpaceP;
   unsigned long CodeP=0L;
   unsigned long CodeS=0L;
+  int xEnd = RawSignal[RawIndexStart] + RawIndexStart;
 
   // zoek de kortste tijd (PULSE en SPACE)
-  x=5; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
-  while(x<=RawSignal[0]-4)
+  x=5 + RawIndexStart; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
+  while(x<=RawSignal[RawIndexStart]-4 + RawIndexStart)
     {
     if(RawSignal[x]<MinPulse)MinPulse=RawSignal[x]; // Zoek naar de kortste pulstijd.
+    if(RawSignal[x]>MaxPulse)MaxPulse=RawSignal[x]; // Zoek naar de langste pulstijd.
     x++;
     if(RawSignal[x]<MinSpace)MinSpace=RawSignal[x]; // Zoek naar de kortste spacetijd.
+    if(RawSignal[x]>MaxSpace)MaxSpace=RawSignal[x]; // Zoek naar de langste spacetijd.
     x++;
     }
+  MinPulseP = MinPulse; // RKR print without rounding
+  MinSpaceP = MinSpace;
   MinPulse+=(MinPulse*S.AnalyseSharpness)/100;
   MinSpace+=(MinSpace*S.AnalyseSharpness)/100;
 
-  x=3; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e pulslengte
+  x=3 + RawIndexStart; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e pulslengte
   z=0; // bit in de Code die geset moet worden
   do{
     if(z>31)
@@ -120,8 +129,28 @@ unsigned long RawSignal_2_32bit(void)
       }
     x++;
     z++;
-    }while(x<RawSignal[0]);
+    }while(x<xEnd);
 
+	if (fPrint) {
+		Serial.print(" RAW P ");
+		Serial.print(MinPulseP,DEC);
+		PrintComma();
+		Serial.print(MaxPulse,DEC);
+		PrintComma();
+		Serial.print(Counter_pulse,DEC);
+		PrintComma();
+		PrintValue(CodeP);
+		Serial.print(", RAW S ");
+		Serial.print(MinSpaceP,DEC);
+		PrintComma();
+		Serial.print(MaxSpace,DEC);
+		PrintComma();
+		Serial.print(Counter_space,DEC);
+		PrintComma();
+		PrintValue(CodeS);
+		PrintComma();
+		PrintValue(CodeS^CodeP);
+	}
  if(Counter_pulse>=1 && Counter_space<=1)return CodeP; // data zat in de pulsbreedte
  if(Counter_pulse<=1 && Counter_space>=1)return CodeS; // data zat in de pulse afstand
  return (CodeS^CodeP); // data zat in beide = bi-phase, maak er een leuke mix van.
@@ -326,7 +355,7 @@ boolean FetchSignal(byte DataPin, boolean StateSignal, int TimeOut, int RawIndex
     RawSignal[RawCodeLength++]=PulseLength;
     }while(RawCodeLength<RAW_BUFFER_SIZE && PulseLength!=0);// Zolang nog niet alle bits ontvangen en er niet vroegtijdig een timeout plaats vindt
 
-  if(RawCodeLength>=MIN_RAW_PULSES)
+  if(RawCodeLength-RawIndexStart>=MIN_RAW_PULSES)
     {
     RawSignal[RawIndexStart]=(RawCodeLength-RawIndexStart)-1; // RKR store signal length
     return true;

@@ -346,7 +346,7 @@ PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,31
 #define DISPLAY_SERIAL              64
 
 #define DISPLAY_RESET               DISPLAY_UNIT + DISPLAY_SOURCE + DISPLAY_DIRECTION + DISPLAY_TAG
-
+#define ENABLE_SOUND				false	// RKR default for EnableSound
 // settings voor verzenden en ontvangen van IR/RF
 #define ENDSIGNAL_TIME          1500 // Dit is de tijd in milliseconden waarna wordt aangenomen dat het ontvangen één reeks signalen beëindigd is
 #define SIGNAL_TIMEOUT_RF       5000 // na deze tijd in uSec. wordt één RF signaal als beëindigd beschouwd.
@@ -376,6 +376,7 @@ struct Settings
   boolean WaitBusy;
   boolean DaylightSaving;
   int     DaylightSavingSet;
+  boolean EnableSound; // RKR kill sound
   }S;
 
 
@@ -389,7 +390,8 @@ unsigned long UserTimer[TIMER_MAX];
 unsigned long StaySharpTimer=millis();
 unsigned long LoopIntervalTimer_1=millis();// millis() maakt dat de intervallen van 1 en 2 niet op zelfde moment vallen => 1 en 2 nu asynchroon
 unsigned long LoopIntervalTimer_2=0L;
-
+unsigned long RawStartSignalTime=millis(); // RKR measure time between signals
+unsigned long RawStartSignalTimeLast= 0; // RKR measure time between signals for filtered signals
 // definiëer een kleine queue voor events die voorbij komen tijdens een delay
 #define EVENT_QUEUE_MAX 15
 unsigned long QueueEvent[EVENT_QUEUE_MAX];
@@ -521,7 +523,7 @@ void loop()
 #ifdef RAWSIGNAL_MULTI
 			RawSignal[RawSignal[0] + 1] = 0;  // next count 0
 #endif
-          Content=AnalyzeRawSignal(); // Bereken uit de tabel met de pulstijden de 32-bit code.
+          Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
           if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
             {
             StaySharpTimer=millis()+SHARP_TIME;
@@ -548,7 +550,7 @@ void loop()
 	#ifdef RAWSIGNAL_MULTI
 				RawSignal[RawSignal[0] + 1] = 0; // next count 0
 	#endif
-			  Content=AnalyzeRawSignal(); // Bereken uit de tabel met de pulstijden de 32-bit code.
+			  Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
 			  if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
 				{
 				StaySharpTimer=millis()+SHARP_TIME;
@@ -571,20 +573,27 @@ void loop()
 		do// met StaySharp wordt focus gezet op luisteren naar RF, doordat andere input niet wordt opgepikt
 		  {
 		  while((*portInputRegister(RFport)&RFbit)==RFbit)// Kijk if er iets op de RF poort binnenkomt. (Pin=HOOG als signaal in de ether).
-			{
+			{unsigned long StartSignalTime = millis();
 			if(FetchSignal(RF_ReceiveDataPin,HIGH,SIGNAL_TIMEOUT_RF, RawSignalStart))// Als het een duidelijk RF signaal was
 			  {
-					RawSignalStart = RawSignalStart + RawSignal[RawSignalStart] + 1;
+				  	if (RawSignalStart == 0) { //inter messages time
+						RawStartSignalTime = StartSignalTime;
+					}
+					RawSignalStart = RawSignalStart + RawSignal[RawSignalStart] + 2;
+					 // intra message time
+					StartSignalTime -= (StaySharpTimer  - SHARP_TIME);
+					RawSignal[RawSignalStart-1] = (StartSignalTime > 0) ? StartSignalTime : 0;
+
 					StaySharpTimer=millis()+SHARP_TIME;
 			}
-			else {
+			else { // Noise/Spikes
 				break;
 			}
 		  }
 		} while(millis()<StaySharpTimer);
 	    RawSignal[RawSignalStart]=0; // next count 0
 	    if (RawSignalStart > 0){
-			Content=AnalyzeRawSignal(); // Bereken uit de tabel met de pulstijden de 32-bit code.
+			Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
 			if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
 			{
 			   ProcessEvent(Content,VALUE_DIRECTION_INPUT,VALUE_SOURCE_RF,0,0); // verwerk binnengekomen event.

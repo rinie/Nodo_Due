@@ -27,7 +27,7 @@ char* cmd2str(int i)
     string[0]=0;// als er geen gevonden wordt, dan is de string leeg
   return string;
   }
-  
+
  /*********************************************************************************************\
  * Haal uit een string de commando code. False indien geen geldige commando code.
  \*********************************************************************************************/
@@ -35,7 +35,7 @@ int str2cmd(char *command)
   {
   for(int x=0;x<=COMMAND_MAX;x++)
     if(strcasecmp(command,cmd2str(x))==0)
-      return x;      
+      return x;
 
   return false;
   }
@@ -55,10 +55,10 @@ unsigned long SetEventType(unsigned long Event, byte Type)
  \*********************************************************************************************/
 unsigned long command2event(int Command, byte Par1, byte Par2)
     {
-    return ((unsigned long)SIGNAL_TYPE_NODO)<<28   | 
-           ((unsigned long)S.Unit)<<24            | 
-           ((unsigned long)Command)<<16           | 
-           ((unsigned long)Par1)<<8               | 
+    return ((unsigned long)SIGNAL_TYPE_NODO)<<28   |
+           ((unsigned long)S.Unit)<<24            |
+           ((unsigned long)Command)<<16           |
+           ((unsigned long)Par1)<<8               |
             (unsigned long)Par2;
     }
 
@@ -73,7 +73,7 @@ unsigned long str2val(char *string)
   {
   byte v,w,x,y,c;
   unsigned long Value;
-  
+
   // Check of het een DEC waarde is.
   Value=0;
   x=0;
@@ -126,7 +126,7 @@ unsigned long str2val(char *string)
   }
 
  /*********************************************************************************************\
- * (re)set een timer. Eenheden in seconden. 
+ * (re)set een timer. Eenheden in seconden.
  * Timer 1..15. Timer=0 is een wildcard voor alle timers
  * Als de timer op 0 wordt gezet, wordt er geen event gegenereerd.
  \*********************************************************************************************/
@@ -156,22 +156,22 @@ void TimerSet(byte Timer, int Time)
  * Let op: call by reference!
  \*********************************************************************************************/
 boolean GetStatus(byte *Command, byte *Par1, byte *Par2)
- { 
+ {
   byte x;
   byte xPar1=*Par1,xPar2=*Par2;
-  
+
   *Par1=0;
   *Par2=0;
   switch (*Command)
     {
-    case CMD_WAITFREERF: 
+    case CMD_WAITFREERF:
       *Par1=S.WaitFreeRF_Delay;
       *Par2=S.WaitFreeRF_Window;
       break;
-  
-    case CMD_UNIT: 
+
+    case CMD_UNIT:
       *Par1=S.Unit;
-      break;        
+      break;
 
     case CMD_DLS_EVENT:
       *Par1=S.DaylightSaving?VALUE_ON:VALUE_OFF;
@@ -180,15 +180,15 @@ boolean GetStatus(byte *Command, byte *Par1, byte *Par2)
     case CMD_SENDBUSY:
       *Par1=S.SendBusy?VALUE_ALL:VALUE_OFF;
       break;
-      
+
     case CMD_WAITBUSY:
       *Par1=S.WaitBusy?VALUE_ALL:VALUE_OFF;
       break;
-      
+
     case CMD_SIMULATE:
       *Par1=Simulate?VALUE_ON:VALUE_OFF;
       break;
-            
+
     case CMD_ANALYSE_SETTINGS:
       *Par1=S.AnalyseTimeOut/1000;
       *Par2=S.AnalyseSharpness;
@@ -264,12 +264,12 @@ boolean GetStatus(byte *Command, byte *Par1, byte *Par2)
       *Par1=xPar1;
       *Par2=WiredAnalog(xPar1-1);
       break;
-      
+
     case CMD_WIRED_OUT:
       *Par1=xPar1;
       *Par2=(WiredOutputStatus[xPar1-1])?VALUE_ON:VALUE_OFF;
       break;
-      
+
     default:
       return false;
     }
@@ -297,14 +297,14 @@ boolean GetStatus(byte *Command, byte *Par1, byte *Par2)
  /*********************************************************************************************\
  * Sla alle settings op in het EEPROM geheugen.
  \*********************************************************************************************/
-void SaveSettings(void)  
+void SaveSettings(void)
   {
   char ByteToSave,*pointerToByteToSave=pointerToByteToSave=(char*)&S;    //pointer verwijst nu naar startadres van de struct. Ge-cast naar char omdat EEPROMWrite per byte wegschrijft
   for(int x=0; x<sizeof(struct Settings) ;x++)
     {
-    EEPROM.write(x,*pointerToByteToSave); 
+    EEPROM.write(x,*pointerToByteToSave);
     pointerToByteToSave++;
-    }  
+    }
   }
 
  /*********************************************************************************************\
@@ -319,13 +319,14 @@ boolean LoadSettings()
     pointerToByteToRead++;// volgende byte uit de struct
     }
   }
- 
-  
+
+
  /*********************************************************************************************\
  * Alle settings van de Nodo weer op default.
  \*********************************************************************************************/
 void ResetFactory(void)
   {
+  S.EnableSound        = ENABLE_SOUND;
   Beep(2000,2000);
   ClockRead();
 
@@ -341,10 +342,10 @@ void ResetFactory(void)
   S.WaitFreeRF_Window  = 0;
   S.WaitFreeRF_Delay   = 0;
   S.DaylightSaving     = Time.DaylightSaving;
-  
+
   for(byte x=0;x<4;x++)
     {
-    S.WiredInputThreshold[x]=0x80; 
+    S.WiredInputThreshold[x]=0x80;
     S.WiredInputSmittTrigger[x]=5;
     S.WiredInputRange[x]=0;
     S.WiredInputPullUp[x]=true;
@@ -354,12 +355,12 @@ void ResetFactory(void)
   for(byte x=0;x<USER_VARIABLES_MAX;x++)
      S.UserVar[x]=0;
 
-  SaveSettings();  
+  SaveSettings();
   FactoryEventlist();
   delay(500);// kleine pauze, anders kans fout bij seriële communicatie
   Reset();
   }
-  
+
  /**********************************************************************************************\
  * Maak de Eventlist leeg en herstel de default inhoud
  \*********************************************************************************************/
@@ -370,7 +371,7 @@ void FactoryEventlist(void)
   Eventlist_Write(0,command2event(CMD_COMMAND_WILDCARD,VALUE_SOURCE_IR,CMD_KAKU),command2event(CMD_SEND_SIGNAL,0,0)); // Kort geluidssignaal bij ieder binnenkomend event
   }
 
-  
+
 /**********************************************************************************************\
  * Converteert een string volgens formaat "<Home><address>" naar een absoluut adres [0..255]
  \*********************************************************************************************/
@@ -379,7 +380,7 @@ int HA2address(char* HA, byte *group)
   byte x=0,y=false; // teller die wijst naar het het te behandelen teken
   byte c;   // teken uit de string die behandeld wordt
   byte Home=0,Address=0;// KAKU-Home en KAKU-adres
- 
+
   while((c=HA[x++])!=0)
     {
     if(c>='0' && c<='9'){Address=Address*10;Address=Address+c-'0';}
@@ -394,13 +395,13 @@ int HA2address(char* HA, byte *group)
       return Home<<4;
       }
     else
-      return (Home<<4) | (Address-1);        
+      return (Home<<4) | (Address-1);
     }
   else // absoluut adres [0..255]
-    return Address; // KAKU adres 1 is intern 0     
+    return Address; // KAKU adres 1 is intern 0
   }
 
-  
+
 
 /* This function places the current value of the heap and stack pointers in the
  * variables. You can call it from any place in your code and save the data for
@@ -412,7 +413,7 @@ int HA2address(char* HA, byte *group)
  * careful you need to be. Julian Gall 6-Feb-2009.
  */
 uint8_t *heapptr, *stackptr;
-void FreeMemory() 
+void FreeMemory()
   {
   stackptr = (uint8_t *)malloc(4);          // use stackptr temporarily
   heapptr = stackptr;                     // save value of heap pointer
@@ -427,9 +428,9 @@ void FreeMemory()
 byte WiredAnalog(byte WiredPort)
   {
   int x=analogRead(WiredAnalogInputPin_1+WiredPort);
-    
+
   if(S.WiredInputRange[WiredPort]==0)
-    // Hele bereik 0..5 volt 
+    // Hele bereik 0..5 volt
     // S.WiredInputRange=0, bits 0..10, Spanning 0.00-5.00, Resolutie 19.53 mllivolt. ADC bereik 0..1023 delen door 4 om op 0.255 uit te komen
     x=x>>2;
   else
@@ -456,10 +457,10 @@ void Status(boolean ToSerial, byte Par1, byte Par2)
   byte CMD_Start,CMD_End;
   byte Par1_Start,Par1_End;
   byte x,P1,P2; // in deze variabele wordt de waarde geplaats (call by reference)
-  
+
   if(Par1==0)
     return;
-    
+
   if(Par2==VALUE_ALL)
     Par2==0;
 
@@ -468,7 +469,7 @@ void Status(boolean ToSerial, byte Par1, byte Par2)
     PrintWelcome();
     return;
     }
-    
+
   if(Par1==VALUE_ALL)
     {
     Par2=0;
@@ -502,7 +503,7 @@ void Status(boolean ToSerial, byte Par1, byte Par2)
           case CMD_WIRED_IN_EVENT:
             Par1_Start=1;
             Par1_End=4;
-            break;      
+            break;
           case CMD_VARIABLE_SET:
           case CMD_TIMER_SET_MIN:
             Par1_Start=1;
@@ -531,6 +532,6 @@ void Status(boolean ToSerial, byte Par1, byte Par2)
           }
       }// if Getstatus
     }// for x
-  if(ToSerial && CMD_Start!=CMD_End) 
+  if(ToSerial && CMD_Start!=CMD_End)
     PrintLine();
   }

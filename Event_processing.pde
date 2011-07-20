@@ -54,7 +54,7 @@ boolean ProcessEvent(unsigned long IncommingEvent, byte Direction, byte Port, un
 #ifndef RAWSIGNAL_MULTI
     PrintRawSignal(0);
 #else
-	for(int RawSignalStart = 0; RawSignal[RawSignalStart] != 0; RawSignalStart = RawSignalStart + RawSignal[RawSignalStart] + 1) {
+	for(int RawSignalStart = 0; RawSignal[RawSignalStart] != 0; RawSignalStart = RawSignalStart + RawSignal[RawSignalStart] + 2) {
 		PrintRawSignal(RawSignalStart);
 	}
 #endif

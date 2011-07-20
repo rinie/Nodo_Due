@@ -153,13 +153,19 @@ for(int x=1+RawIndexStart;x<=xEnd;x++) {
  	return;
  }
   if (RawIndexStart <= 0) {
-  	PrintEventCode(AnalyzeRawSignal());
+  	PrintEventCode(AnalyzeRawSignal(0));
 	PrintTerm();
 	Serial.print("* ");
+	// inter message time
+	Serial.print(RawStartSignalTime - RawStartSignalTimeLast,DEC);
+	RawStartSignalTimeLast = RawStartSignalTime;
 	}
 else {
 	  Serial.print("! ");
+	// intra message
+	  Serial.print(RawSignal[xEnd+1],DEC);
 }
+  PrintComma();
   //total time
   i = 0;
 for(int x=1+RawIndexStart;x<=xEnd;x++) {
@@ -183,10 +189,12 @@ for(int x=1+RawIndexStart;x<=xEnd;x++) {
   Serial.print(RawSignal[RawIndexStart]-i,DEC);
   PrintComma();
 
-
   Serial.print(i,DEC);
-// todo print min/max and minButOne/maxButOne
+  PrintComma();
 
+  PrintEventCode(AnalyzeRawSignal(RawIndexStart));
+// todo print min/max and minButOne/maxButOne
+  RawSignal_2_32bit(RawIndexStart, true);
   PrintTerm();
 
 //  PrintText(Text_07,false);
