@@ -315,7 +315,7 @@ PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,31
 #define Eventlist_OFFSET            64 // Eerste deel van het EEPROM geheugen is voor de settings. Reserveer __ bytes. Deze niet te gebruiken voor de Eventlist.
 #define Eventlist_MAX              120 // aantal events dat de lijst bevat in het EEPROM geheugen van de ATMega328. Iedere event heeft 8 bytes nodig. eerste adres is 0
 #define USER_VARIABLES_MAX          15 // aantal beschikbare gebruikersvariabelen voor de user.
-#define RAW_BUFFER_SIZE            200 // Maximaal aantal te ontvangen bits*2
+#define RAW_BUFFER_SIZE            500 // Maximaal aantal te ontvangen bits*2
 #define UNIT_MAX                    15
 #define MACRO_EXECUTION_DEPTH       10 // maximale nesting van macro's.
 
@@ -352,7 +352,8 @@ PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,31
 #define SIGNAL_TIMEOUT_RF       5000 // na deze tijd in uSec. wordt één RF signaal als beëindigd beschouwd.
 #define SIGNAL_TIMEOUT_IR      10000 // na deze tijd in uSec. wordt één IR signaal als beëindigd beschouwd.
 #define TX_REPEATS                 5 // aantal herhalingen van een code binnen één RF of IR reeks
-#define MIN_PULSE_LENGTH         100 // pulsen korter dan deze tijd uSec. worden als stoorpulsen beschouwd.
+#define MIN_PULSE_LENGTH         75 // pulsen korter dan deze tijd uSec. worden als stoorpulsen beschouwd. RKR was 100 try 75
+
 #define MIN_RAW_PULSES            16 // =8 bits. Minimaal aantal ontvangen bits*2 alvorens cpu tijd wordt besteed aan decodering, etc. Zet zo hoog mogelijk om CPU-tijd te sparen en minder 'onzin' te ontvangen.
 #define SHARP_TIME               500 // tijd in milliseconden dat de nodo gefocust moet blijven luisteren naar één dezelfde poort na binnenkomst van een signaal
 #define RAWSIGNAL_TOGGLE	// RKR instead of just one rawsignal, repeat until you send RawSignalGet; again...
@@ -582,12 +583,12 @@ void loop()
 					RawSignalStart = RawSignalStart + RawSignal[RawSignalStart] + 2;
 					 // intra message time
 					StartSignalTime -= (StaySharpTimer  - SHARP_TIME);
-					RawSignal[RawSignalStart-1] = (StartSignalTime > 0) ? StartSignalTime : 0;
+					RawSignal[RawSignalStart-1] = (StartSignalTime > 0) ? StartSignalTime : 1;
 
 					StaySharpTimer=millis()+SHARP_TIME;
 			}
 			else { // Noise/Spikes
-				break;
+					break;
 			}
 		  }
 		} while(millis()<StaySharpTimer);

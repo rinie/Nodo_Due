@@ -106,13 +106,17 @@ unsigned long RawSignal_2_KAKU(int RawIndexStart)
   // conventionele KAKU bestaat altijd uit 12 data bits plus stop. Ongelijk, dan geen KAKU
   if (RawSignal[RawIndexStart]!=(KAKU_CodeLength*4)+2)return false;
 
-  for (i=RawIndexStart; i<RawIndexStart + KAKU_CodeLength; i++)
+  for (i=0; i<KAKU_CodeLength; i++)
     {
     j=KAKU_T*2;
-    if      (RawSignal[4*i+1]<j && RawSignal[4*i+2]>j && RawSignal[4*i+3]<j && RawSignal[4*i+4]>j) {bitstream=(bitstream >> 1);} // 0
-    else if (RawSignal[4*i+1]<j && RawSignal[4*i+2]>j && RawSignal[4*i+3]>j && RawSignal[4*i+4]<j) {bitstream=(bitstream >> 1 | (1 << (KAKU_CodeLength-1))); }// 1
-    else if (RawSignal[4*i+1]<j && RawSignal[4*i+2]>j && RawSignal[4*i+3]<j && RawSignal[4*i+4]<j) {bitstream=(bitstream >> 1); Command= KAKU_ALLOFF;} // Short 0, Groep commando. Zet bit-2 van Par2.
-    else {return false;} // foutief signaal
+    if (RawSignal[4*i+1 + RawIndexStart]<j && RawSignal[4*i+2 + RawIndexStart]>j && RawSignal[4*i+3 + RawIndexStart]<j && RawSignal[4*i+4 + RawIndexStart]>j)
+    	{bitstream=(bitstream >> 1);} // 0
+    else if (RawSignal[4*i+1 + RawIndexStart]<j && RawSignal[4*i+2 + RawIndexStart]>j && RawSignal[4*i+3 + RawIndexStart]>j && RawSignal[4*i+4 + RawIndexStart]<j)
+    	{bitstream=(bitstream >> 1 | (1 << (KAKU_CodeLength-1))); } // 1
+    else if (RawSignal[4*i+1 + RawIndexStart]<j && RawSignal[4*i+2 + RawIndexStart]>j && RawSignal[4*i+3 + RawIndexStart]<j && RawSignal[4*i+4 + RawIndexStart]<j)
+    	{bitstream=(bitstream >> 1); Command= KAKU_ALLOFF;} // Short 0, Groep commando. Zet bit-2 van Par2.
+    else
+    	{return false;} // foutief signaal
     }
 
   if ((bitstream&0x600)!=0x600)return false; // twee vaste bits van KAKU gebruiken als checksum
@@ -229,13 +233,13 @@ unsigned long RawSignal_2_NewKAKU(int RawIndexStart)
   // RawSignal[0] bevat aantal pulsen * 2  => negeren
   // RawSignal[1] bevat startbit met tijdsduur van 1T => negeren
   // RawSignal[2] bevat lange space na startbit met tijdsduur van 8T => negeren
-  i=3 + RawIndexStart; // RawSignal[3] is de eerste van een T,xT,T,xT combinatie
+  i=3; // RawSignal[3] is de eerste van een T,xT,T,xT combinatie
 
   do
     {
-    if     (RawSignal[i]<NewKAKU_mT && RawSignal[i+1]<NewKAKU_mT && RawSignal[i+2]<NewKAKU_mT && RawSignal[i+3]>NewKAKU_mT)Bit=0; // T,T,T,4T
-    else if(RawSignal[i]<NewKAKU_mT && RawSignal[i+1]>NewKAKU_mT && RawSignal[i+2]<NewKAKU_mT && RawSignal[i+3]<NewKAKU_mT)Bit=1; // T,4T,T,T
-    else if(RawSignal[i]<NewKAKU_mT && RawSignal[i+1]<NewKAKU_mT && RawSignal[i+2]<NewKAKU_mT && RawSignal[i+3]<NewKAKU_mT)       // T,T,T,T Deze hoort te zitten op i=111 want: 27e NewKAKU bit maal 4 plus 2 posities voor startbit
+    if     (RawSignal[i + RawIndexStart]<NewKAKU_mT && RawSignal[i+1 + RawIndexStart]<NewKAKU_mT && RawSignal[i+2 + RawIndexStart]<NewKAKU_mT && RawSignal[i+3 + RawIndexStart]>NewKAKU_mT)Bit=0; // T,T,T,4T
+    else if(RawSignal[i + RawIndexStart]<NewKAKU_mT && RawSignal[i+1 + RawIndexStart]>NewKAKU_mT && RawSignal[i+2 + RawIndexStart]<NewKAKU_mT && RawSignal[i+3 + RawIndexStart]<NewKAKU_mT)Bit=1; // T,4T,T,T
+    else if(RawSignal[i + RawIndexStart]<NewKAKU_mT && RawSignal[i+1 + RawIndexStart]<NewKAKU_mT && RawSignal[i+2 + RawIndexStart]<NewKAKU_mT && RawSignal[i+3 + RawIndexStart]<NewKAKU_mT)       // T,T,T,T Deze hoort te zitten op i=111 want: 27e NewKAKU bit maal 4 plus 2 posities voor startbit
       {
       if(RawSignal[RawIndexStart]!=NewKAKUdim_RawSignalLength) // als de dim-bits er niet zijn
         return false;

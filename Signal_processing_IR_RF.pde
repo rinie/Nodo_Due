@@ -21,18 +21,32 @@
 #define NODO_PULSE_1                   1500   // PWM: Tijdsduur van de puls bij verzenden van een '1' in uSec. (3x NODO_PULSE_0)
 #define NODO_SPACE                      500   // PWM: Tijdsduur van de space tussen de bitspuls bij verzenden van een '1' in uSec.
 
+#define NewKAKU_RawSignalLength      132
+#define NewKAKUdim_RawSignalLength   148
+#define KAKU_CodeLength    12
+
 unsigned long AnalyzeRawSignal(int RawIndexStart)
   {
   unsigned long Code=0L;
 
-  if(RawSignal[RawIndexStart]==RAW_BUFFER_SIZE)return 0L;     // Als het signaal een volle buffer beslaat is het zeer waarschijnlijk ruis.
+  if(RawSignal[RawIndexStart]>=RAW_BUFFER_SIZE)return 0L;     // Als het signaal een volle buffer beslaat is het zeer waarschijnlijk ruis.
 
-  if(!(Code=RawSignal_2_Nodo(RawIndexStart)))
-    if(!(Code=RawSignal_2_KAKU(RawIndexStart)))
-      if(!(Code=RawSignal_2_NewKAKU(RawIndexStart)))
-        Code=RawSignal_2_32bit(RawIndexStart, false);
-
-  return Code;   // Geen Nodo, KAKU of NewKAKU code. Genereer uit het onbekende signaal een (vrijwel) unieke 32-bit waarde uit.
+	switch (RawSignal[RawIndexStart]) {
+	case 66:
+  		Code=RawSignal_2_Nodo(RawIndexStart);
+  		break;
+  	case KAKU_CodeLength*4+2:
+    	Code=RawSignal_2_KAKU(RawIndexStart);
+    	break;
+    case NewKAKU_RawSignalLength:
+    case NewKAKUdim_RawSignalLength:
+      	Code=RawSignal_2_NewKAKU(RawIndexStart);
+      	break;
+ 	}
+  if (!Code) { // Geen Nodo, KAKU of NewKAKU code. Genereer uit het onbekende signaal een (vrijwel) unieke 32-bit waarde uit.
+     Code=RawSignal_2_32bit(RawIndexStart, false);
+  }
+  return Code;
   }
 
 /*********************************************************************************************\
@@ -133,6 +147,8 @@ unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint)
 
 	if (fPrint) {
 		Serial.print(" RAW P ");
+		Serial.print(RawSignal[RawIndexStart+1],DEC); // start pulse/preamble
+		PrintComma();
 		Serial.print(MinPulseP,DEC);
 		PrintComma();
 		Serial.print(MaxPulse,DEC);
@@ -141,6 +157,8 @@ unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint)
 		PrintComma();
 		PrintValue(CodeP);
 		Serial.print(", RAW S ");
+		Serial.print(RawSignal[RawIndexStart+2],DEC); // start space/preamble
+		PrintComma();
 		Serial.print(MinSpaceP,DEC);
 		PrintComma();
 		Serial.print(MaxSpace,DEC);
