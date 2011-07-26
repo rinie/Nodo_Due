@@ -77,6 +77,37 @@ unsigned long RawSignal_2_Nodo(int RawIndexStart)
 
 
 
+int RkrMinMax(int RawIndexStart, int Median, int What) {
+	int x;
+	unsigned int Min=0xffff;
+	unsigned int Max=0x0;//RKR
+	int xEnd = RawSignal[RawIndexStart] + RawIndexStart;
+
+	// Kleinste, groter dan mid
+	// Grootste, kleinder dan mid
+	// diff > x?
+	// dan replace by median
+	// zoek de kortste tijd (PULSE en SPACE)
+	// 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
+	for (x = 5 + RawIndexStart; x <= xEnd-4; x+=2) {
+			unsigned int value = ((What < 2) ? RawSignal[x] // pulse
+							   : ((What < 4) ? RawSignal[x + 1] //space
+											:  RawSignal[x] + RawSignal[x + 1])); // pulse + space
+		if (value < Min && value >= Median) {
+			Min=value; // Zoek naar de kortste pulstijd.
+		}
+		if (value > Max  && value <= Median) {
+			Max=value; // Zoek naar de langste pulstijd.
+		}
+	}
+	return (What%2)==1 ? Max : Min;
+}
+
+void PrintDash(void)
+  {
+  Serial.print('-');
+  }
+
  /**********************************************************************************************\
  * Deze functie genereert uit een willekeurig gevulde RawSignal afkomstig van de meeste
  * afstandsbedieningen een (vrijwel) unieke bit code.
@@ -84,74 +115,124 @@ unsigned long RawSignal_2_Nodo(int RawIndexStart)
  * meegenomen zodat deze functie geschikt is voor PWM, PDM en Bi-Pase modulatie.
  * LET OP: Het betreft een unieke hash-waarde zonder betekenis van waarde.
  \*********************************************************************************************/
-unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint)
-  {
-  int x,y,z;
-  int Counter_pulse=0,Counter_space=0;
-  int MinPulse=0xffff;
-  int MinSpace=0xffff;
-  int MaxPulse=0x0;//RKR
-  int MaxSpace=0x0;
-  int MinPulseP;
-  int MinSpaceP;
-  unsigned long CodeP=0L;
-  unsigned long CodeS=0L;
-  int xEnd = RawSignal[RawIndexStart] + RawIndexStart;
+unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint) {
+	int x,y,z;
+	int Counter_pulse=0,Counter_space=0;
+	int MinPulse=0xffff;
+	int MinSpace=0xffff;
+	int MaxPulse=0x0;//RKR
+	int MaxSpace=0x0;
+	int MinPulseSpace=0xffff;
+	int MaxPulseSpace=0x0;//RKR
+	int MinPulseP;
+	int MinSpaceP;
+	unsigned long CodeP=0L;
+	unsigned long CodeS=0L;
+	int xEnd = RawSignal[RawIndexStart] + RawIndexStart;
 
-  // zoek de kortste tijd (PULSE en SPACE)
-  x=5 + RawIndexStart; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
-  while(x<=RawSignal[RawIndexStart]-4 + RawIndexStart)
-    {
-    if(RawSignal[x]<MinPulse)MinPulse=RawSignal[x]; // Zoek naar de kortste pulstijd.
-    if(RawSignal[x]>MaxPulse)MaxPulse=RawSignal[x]; // Zoek naar de langste pulstijd.
-    x++;
-    if(RawSignal[x]<MinSpace)MinSpace=RawSignal[x]; // Zoek naar de kortste spacetijd.
-    if(RawSignal[x]>MaxSpace)MaxSpace=RawSignal[x]; // Zoek naar de langste spacetijd.
-    x++;
-    }
-  MinPulseP = MinPulse; // RKR print without rounding
-  MinSpaceP = MinSpace;
-  MinPulse+=(MinPulse*S.AnalyseSharpness)/100;
-  MinSpace+=(MinSpace*S.AnalyseSharpness)/100;
+	// Kleinste, groter dan mid
+	// Grootste, kleinder dan mid
+	// diff > x?
+	// dan replace by median
+	// zoek de kortste tijd (PULSE en SPACE)
+	x = 5 + RawIndexStart; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
+	while (x <= xEnd-4) {
+		if (RawSignal[x] < MinPulse) {
+			MinPulse=RawSignal[x]; // Zoek naar de kortste pulstijd.
+		}
+		if (RawSignal[x] > MaxPulse) {
+			MaxPulse=RawSignal[x]; // Zoek naar de langste pulstijd.
+		}
 
-  x=3 + RawIndexStart; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e pulslengte
-  z=0; // bit in de Code die geset moet worden
-  do{
-    if(z>31)
-      {
-      CodeP=CodeP>>1;
-      CodeS=CodeS>>1;
-      }
+		x++;
 
-    if(RawSignal[x]>MinPulse)
-      {
-      if(z<=31)// de eerste 32 bits vullen in de 32-bit variabele
-          CodeP|=(long)(1L<<z); //LSB in signaal wordt  als eerste verzonden
-      else // daarna de resterende doorschuiven
-        CodeP|=0x80000000L;
-      Counter_pulse++;
-      }
-    x++;
+		if (RawSignal[x] < MinSpace && RawSignal[x] > 10) {
+			MinSpace=RawSignal[x]; // Zoek naar de kortste spacetijd.
+		}
+		if (RawSignal[x] > MaxSpace) {
+			MaxSpace=RawSignal[x]; // Zoek naar de langste spacetijd.
+		}
 
-    if(RawSignal[x]>MinSpace)
-      {
-      if(z<=31)// de eerste 32 bits vullen in de 32-bit variabele
-          CodeS|=(long)(1L<<z); //LSB in signaal wordt  als eerste verzonden
-      else // daarna de resterende doorschuiven
-        CodeS|=0x80000000L;
-      Counter_space++;
-      }
-    x++;
-    z++;
-    }while(x<xEnd);
+		if (RawSignal[x]+RawSignal[x-1] < MinPulseSpace && RawSignal[x] > 10) {
+				MinPulseSpace=RawSignal[x]+RawSignal[x-1]; // Zoek naar de kortste pulse + spacetijd.
+		}
+
+		if (RawSignal[x]+RawSignal[x-1] > MaxPulseSpace) {
+			MaxPulseSpace = RawSignal[x] + RawSignal[x-1]; // Zoek naar de langste pulse + spacetijd.
+		}
+		x++;
+	}
+
+	MinPulseP = MinPulse; // RKR print without rounding
+	MinSpaceP = MinSpace;
+	if (MaxPulse - MinPulse < 200) {
+		// RKR Original
+		MinPulse+=(MinPulse*S.AnalyseSharpness)/100;
+	}
+	else {
+		// try half way
+		MinPulse+= (MaxPulse-MinPulse) / 2;
+	}
+
+	if (MaxSpace - MinSpace < 200) {
+		MinSpace+=(MinSpace*S.AnalyseSharpness)/100;
+	}
+	else {
+		// try half way
+		MinSpace+= (MaxSpace-MinSpace) / 2;
+	}
+
+	x=3 + RawIndexStart; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e pulslengte
+	z=0; // bit in de Code die geset moet worden
+	do {
+		if (z>31) {
+			CodeP=CodeP>>1;
+			CodeS=CodeS>>1;
+		}
+
+		if (RawSignal[x]>MinPulse) {
+			if (z <= 31) {// de eerste 32 bits vullen in de 32-bit variabele
+				CodeP |= (long)(1L<<z); //LSB in signaal wordt  als eerste verzonden
+			}
+			else { // daarna de resterende doorschuiven
+				CodeP |= 0x80000000L;
+			}
+			Counter_pulse++;
+		}
+		x++;
+
+		if (RawSignal[x]>MinSpace) {
+			if (z<=31) {// de eerste 32 bits vullen in de 32-bit variabele
+				CodeS |= (long)(1L<<z); //LSB in signaal wordt  als eerste verzonden
+			}
+			else { // daarna de resterende doorschuiven
+				CodeS |= 0x80000000L;
+			}
+			Counter_space++;
+		}
+		x++;
+
+		z++;
+	}
+	while (x<xEnd);
 
 	if (fPrint) {
 		Serial.print(" RAW P ");
 		Serial.print(RawSignal[RawIndexStart+1],DEC); // start pulse/preamble
 		PrintComma();
 		Serial.print(MinPulseP,DEC);
+		if (MaxPulse-MinPulseP > 100) {
+			PrintDash();
+			Serial.print(RkrMinMax(RawIndexStart, MinPulseP + (MaxPulse-MinPulseP)/2, 1) ,DEC);
+		}
 		PrintComma();
+		if (MaxPulse-MinPulseP > 100) {
+			Serial.print(RkrMinMax(RawIndexStart, MinPulseP + (MaxPulse-MinPulseP)/2, 0) ,DEC);
+			PrintDash();
+		}
 		Serial.print(MaxPulse,DEC);
+		PrintComma();
+		Serial.print(MaxPulse-MinPulseP,DEC);
 		PrintComma();
 		Serial.print(Counter_pulse,DEC);
 		PrintComma();
@@ -160,19 +241,52 @@ unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint)
 		Serial.print(RawSignal[RawIndexStart+2],DEC); // start space/preamble
 		PrintComma();
 		Serial.print(MinSpaceP,DEC);
+		if (MaxSpace-MinSpaceP > 100) {
+			PrintDash();
+			Serial.print(RkrMinMax(RawIndexStart, MinSpaceP + (MaxSpace-MinSpaceP)/2, 3) ,DEC);
+		}
 		PrintComma();
+		if (MaxSpace-MinSpaceP > 100) {
+			Serial.print(RkrMinMax(RawIndexStart, MinSpaceP + (MaxSpace-MinSpaceP)/2, 2) ,DEC);
+			PrintDash();
+		}
 		Serial.print(MaxSpace,DEC);
+		PrintComma();
+		Serial.print(MaxSpace-MinSpaceP,DEC);
 		PrintComma();
 		Serial.print(Counter_space,DEC);
 		PrintComma();
 		PrintValue(CodeS);
+		Serial.print(", RAW PS ");
+		Serial.print(RawSignal[RawIndexStart+1] + RawSignal[RawIndexStart+2],DEC); // start space/preamble
+		PrintComma();
+		Serial.print(MinPulseSpace,DEC);
+		if (MaxPulseSpace-MinPulseSpace > 100) {
+			PrintDash();
+			Serial.print(RkrMinMax(RawIndexStart, MinPulseSpace + (MaxPulseSpace-MinPulseSpace)/2, 5) ,DEC);
+		}
+		PrintComma();
+		if (MaxPulseSpace-MinPulseSpace > 100) {
+			Serial.print(RkrMinMax(RawIndexStart, MinPulseSpace + (MaxPulseSpace-MinPulseSpace)/2, 4) ,DEC);
+			PrintDash();
+		}
+		Serial.print(MaxPulseSpace,DEC);
+		PrintComma();
+		Serial.print(MaxPulseSpace-MinPulseSpace,DEC);
+		PrintComma();
+		Serial.print(Counter_pulse + Counter_space,DEC);
 		PrintComma();
 		PrintValue(CodeS^CodeP);
 	}
- if(Counter_pulse>=1 && Counter_space<=1)return CodeP; // data zat in de pulsbreedte
- if(Counter_pulse<=1 && Counter_space>=1)return CodeS; // data zat in de pulse afstand
- return (CodeS^CodeP); // data zat in beide = bi-phase, maak er een leuke mix van.
- }
+
+	if(Counter_pulse>=1 && Counter_space<=1) {
+		return CodeP; // data zat in de pulsbreedte
+	}
+	if(Counter_pulse<=1 && Counter_space>=1) {
+		return CodeS; // data zat in de pulse afstand
+	}
+	return (CodeS^CodeP); // data zat in beide = bi-phase, maak er een leuke mix van.
+}
 
 
  /**********************************************************************************************\
@@ -354,13 +468,18 @@ boolean FetchSignal(byte DataPin, boolean StateSignal, int TimeOut, int RawIndex
 	// support for long preamble
     PulseLength=WaitForChangeState(DataPin, StateSignal, 2*TimeOut); // meet hoe lang signaal LOW (= PULSE van IR signaal)
     if(PulseLength<MIN_PULSE_LENGTH)return false;
-    if(PulseLength > TimeOut) {
-		TimeOut = PulseLength;
-	}
+//    if(PulseLength > TimeOut) {
+//		TimeOut = PulseLength;
+//	}
     RawSignal[RawCodeLength++]=PulseLength;
     PulseLength=WaitForChangeState(DataPin, !StateSignal, 2*TimeOut); // meet hoe lang signaal HIGH (= SPACE van IR signaal)
-    if(PulseLength > TimeOut) {
-		TimeOut = PulseLength;
+    if(PulseLength + RawSignal[RawCodeLength-1] > TimeOut) {
+	    if(PulseLength + RawSignal[RawCodeLength-1] > TimeOut + 1000) {
+			TimeOut = (PulseLength + RawSignal[RawCodeLength-1]);
+		}
+		else {
+			TimeOut = 2*(PulseLength + RawSignal[RawCodeLength-1] + 1000);
+		}
 	}
     RawSignal[RawCodeLength++]=PulseLength;
 

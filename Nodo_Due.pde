@@ -47,7 +47,7 @@
 prog_char PROGMEM Text_01[] = "Nodo-Due Domotica controller (c) Copyright 2011 P.K.Tonkes.";
 prog_char PROGMEM Text_02[] = "Licensed under GNU General Public License.";
 prog_char PROGMEM Text_03[] = "Line=";
-prog_char PROGMEM Text_04[] = "SunMonThuWedThuFriSat";
+prog_char PROGMEM Text_04[] = "SunMonTueWedThuFriSat";
 prog_char PROGMEM Text_06[] = "Unknown command: ";
 prog_char PROGMEM Text_07[] = "RawSignal=";
 prog_char PROGMEM Text_08[] = "Queue=Out, ";
@@ -349,7 +349,7 @@ PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,31
 #define ENABLE_SOUND				false	// RKR default for EnableSound
 // settings voor verzenden en ontvangen van IR/RF
 #define ENDSIGNAL_TIME          1500 // Dit is de tijd in milliseconden waarna wordt aangenomen dat het ontvangen één reeks signalen beëindigd is
-#define SIGNAL_TIMEOUT_RF       5000 // na deze tijd in uSec. wordt één RF signaal als beëindigd beschouwd.
+#define SIGNAL_TIMEOUT_RF       2600 // na deze tijd in uSec. wordt één RF signaal als beëindigd beschouwd. RKR was 5000 but use preamble timing to enlarge...
 #define SIGNAL_TIMEOUT_IR      10000 // na deze tijd in uSec. wordt één IR signaal als beëindigd beschouwd.
 #define TX_REPEATS                 5 // aantal herhalingen van een code binnen één RF of IR reeks
 #define MIN_PULSE_LENGTH         75 // pulsen korter dan deze tijd uSec. worden als stoorpulsen beschouwd. RKR was 100 try 75
@@ -400,7 +400,12 @@ byte QueuePort[EVENT_QUEUE_MAX];
 byte QueuePos;
 
 // Overige globals
-boolean Simulate,RawsignalGet=false;
+boolean Simulate=false;
+#ifdef RAWSIGNAL_TOGGLE
+boolean RawsignalGet=true;
+#else
+boolean RawsignalGet=false;
+#endif
 boolean WiredInputStatus[4],WiredOutputStatus[4];   // Wired variabelen
 unsigned int RawSignal[RAW_BUFFER_SIZE+2];          // Tabel met de gemeten pulsen in microseconden. eerste waarde is het aantal bits*2
 int BusyNodo;                                       // in deze variabele de status van het event 'Busy' van de betreffende units 1 t/m 15. bit-1 = unit-1

@@ -138,82 +138,106 @@ void PrintComma(void)
   Serial.print(", ");
   }
 
-void PrintRawSignal(int RawIndexStart)
-  {
-  byte x;
-  unsigned int i;
-  byte xEnd = RawSignal[RawIndexStart] + RawIndexStart;
-   //total time
-  i = 0;
-for(int x=1+RawIndexStart;x<=xEnd;x++) {
-  i += RawSignal[x];
- }
-
- if (i <= 0) {
- 	return;
- }
-  if (RawIndexStart <= 0) {
-  	PrintEventCode(AnalyzeRawSignal(0));
-	PrintTerm();
-	Serial.print("* ");
-	// inter message time
-	Serial.print(RawStartSignalTime - RawStartSignalTimeLast,DEC);
-	RawStartSignalTimeLast = RawStartSignalTime;
-	}
-else {
-	  Serial.print("! ");
-	// intra message
-	  Serial.print(RawSignal[xEnd+1],DEC);
-}
-  PrintComma();
-  //total time
-  i = 0;
-for(int x=1+RawIndexStart;x<=xEnd;x++) {
-  i += RawSignal[x];
- }
-  Serial.print(i,DEC);
-  PrintComma();
-
-// count
-  Serial.print(RawSignal[RawIndexStart],DEC);
-  PrintComma();
-
-  // net count min spikes
-  i = 0;
-for(int x=1+RawIndexStart;x<=xEnd;x++) {
-	if (RawSignal[x] < 100) {
-		i++;
-	}
-}
-
-  Serial.print(RawSignal[RawIndexStart]-i,DEC);
-  PrintComma();
-
-  Serial.print(i,DEC);
-  PrintComma();
-
-  PrintEventCode(AnalyzeRawSignal(RawIndexStart));
-// todo print min/max and minButOne/maxButOne
-  RawSignal_2_32bit(RawIndexStart, true);
-  PrintTerm();
-
-//  PrintText(Text_07,false);
-  for(int x=1+RawIndexStart;x<=xEnd;x++)
-     {
-     if(x>1+RawIndexStart)PrintComma();
+void PrintNum(unsigned int x, bool fPrintComma, unsigned int digits) {
      // Rinie add space for small digits
-     if (RawSignal[x] < 100) {
-		 Serial.print(" ");
-	 }
-     if (RawSignal[x] < 1000) {
-		 Serial.print(" ");
-	 }
-     Serial.print(RawSignal[x],DEC);
-     }
+     if(fPrintComma) {
+     	PrintComma();
+ 	}
+	for (unsigned int i=0, val=10; i < digits; i++, val *= 10) {
+		if (x < val) {
+			PrintChar(' ');
+		}
+	}
+
+    Serial.print(x,DEC);
+}
+
+void PrintRawSignal(int RawIndexStart) {
+	byte x;
+	unsigned int i;
+	bool fPrintPulseAndSpace = true;
+	byte xEnd = RawSignal[RawIndexStart] + RawIndexStart;
+	//total time
+	i = 0;
+	for(int x=1+RawIndexStart;x<=xEnd;x++) {
+		i += RawSignal[x];
+	}
+
+	if (i <= 0) {
+		return;
+	}
+	if (RawIndexStart <= 0) {
+		//PrintEventCode(AnalyzeRawSignal(0));
+		//PrintTerm();
+		  ClockRead();
+		PrintDateTime();
+		PrintTerm();
+		Serial.print("* ");
+		// inter message time
+		PrintNum(RawStartSignalTime - RawStartSignalTimeLast,false, 5);
+		RawStartSignalTimeLast = RawStartSignalTime;
+	}
+	else {
+		Serial.print("! ");
+		// intra message
+		PrintNum(RawSignal[xEnd+1],false, 5);
+	}
+//	PrintComma();
+	//total time
+	i = 0;
+	for(int x=1+RawIndexStart;x<=xEnd;x++) {
+		i += RawSignal[x];
+	}
+	PrintNum(i,true, 5);
+//	PrintComma();
+
+	// count
+	PrintNum(RawSignal[RawIndexStart],true, 2);
+//	PrintComma();
+
+	// net count min spikes
+	i = 0;
+	for(int x=1+RawIndexStart;x<=xEnd;x++) {
+		if (RawSignal[x] < 100) {
+			i++;
+		}
+	}
+
+	PrintNum(RawSignal[RawIndexStart]-i,true, 0);
+//	PrintComma();
+
+	PrintNum(i,true, 0);
+	PrintComma();
+
+	PrintEventCode(AnalyzeRawSignal(RawIndexStart));
+	// todo print min/max and minButOne/maxButOne
+	RawSignal_2_32bit(RawIndexStart, true);
+//	PrintTerm();
+
+	//  PrintText(Text_07,false);
+	for(int x=1+RawIndexStart;x<=xEnd;x++) {
+		if ((x - (1+RawIndexStart))%16==0) {
+				PrintTerm();
+				PrintNum(x - (1+RawIndexStart), false, 4);
+				PrintChar(':');
+				PrintNum(RawSignal[x], false, 4);
+		}
+		else {
+			PrintNum(RawSignal[x], true, 4);
+		}
+		if (fPrintPulseAndSpace) { // mark + space
+			if ((x - (1+RawIndexStart))%2==1) {
+				Serial.print(" [");
+				PrintNum(RawSignal[x] + RawSignal[x-1], false, 4);
+				PrintChar(']');
+			}
+		}
+
+	}
 //  PrintChar(')');
 //  Serial.print(x,DEC);
-  PrintTerm();
-  }
+	PrintTerm();
+}
 
 #endif
  /*********************************************************************************************\
@@ -485,6 +509,10 @@ void PrintDateTime(void)
     // print minuten.
     if(Time.Minutes<10)PrintChar('0');
     PrintValue(Time.Minutes);
+    // RKR print seconds
+    PrintChar(':');
+    if(Time.Seconds<10)PrintChar('0');
+    PrintValue(Time.Seconds);
     }
 
  /**********************************************************************************************\
@@ -526,6 +554,10 @@ void PrintWelcome(void)
       }
     PrintTerm();
     }
+#ifdef RAWSIGNAL_TOGGLE
+	Serial.print("rawsignalget; on");
+    PrintTerm();
+#endif
   PrintLine();
   }
 
