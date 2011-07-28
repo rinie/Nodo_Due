@@ -315,7 +315,6 @@ PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,31
 #define Eventlist_OFFSET            64 // Eerste deel van het EEPROM geheugen is voor de settings. Reserveer __ bytes. Deze niet te gebruiken voor de Eventlist.
 #define Eventlist_MAX              120 // aantal events dat de lijst bevat in het EEPROM geheugen van de ATMega328. Iedere event heeft 8 bytes nodig. eerste adres is 0
 #define USER_VARIABLES_MAX          15 // aantal beschikbare gebruikersvariabelen voor de user.
-#define RAW_BUFFER_SIZE            500 // Maximaal aantal te ontvangen bits*2
 #define UNIT_MAX                    15
 #define MACRO_EXECUTION_DEPTH       10 // maximale nesting van macro's.
 
@@ -393,6 +392,11 @@ unsigned long LoopIntervalTimer_1=millis();// millis() maakt dat de intervallen 
 unsigned long LoopIntervalTimer_2=0L;
 unsigned long RawStartSignalTime=millis(); // RKR measure time between signals
 unsigned long RawStartSignalTimeLast= 0; // RKR measure time between signals for filtered signals
+#define RAW_BUFFER_SIZE            400 // Maximaal aantal te ontvangen bits*2
+#define RAW_BUFFER_PULSELEN_SIZE	60 // RKR pulse length calculations
+#define RAW_BUFFER_PULSELEN_START	(RAW_BUFFER_SIZE + 4) // RKR borrow same array
+unsigned int RawSignal[RAW_BUFFER_SIZE+4 + RAW_BUFFER_PULSELEN_SIZE];          // Tabel met de gemeten pulsen in microseconden. eerste waarde is het aantal bits*2
+
 // definiëer een kleine queue voor events die voorbij komen tijdens een delay
 #define EVENT_QUEUE_MAX 15
 unsigned long QueueEvent[EVENT_QUEUE_MAX];
@@ -407,7 +411,6 @@ boolean RawsignalGet=true;
 boolean RawsignalGet=false;
 #endif
 boolean WiredInputStatus[4],WiredOutputStatus[4];   // Wired variabelen
-unsigned int RawSignal[RAW_BUFFER_SIZE+2];          // Tabel met de gemeten pulsen in microseconden. eerste waarde is het aantal bits*2
 int BusyNodo;                                       // in deze variabele de status van het event 'Busy' van de betreffende units 1 t/m 15. bit-1 = unit-1
 byte UserVarPrevious[USER_VARIABLES_MAX];
 byte DaylightPrevious;                              // t.b.v. voorkomen herhaald genereren van events binnen de lopende minuut waar dit event zich voordoet

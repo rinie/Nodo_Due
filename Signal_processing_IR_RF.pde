@@ -76,37 +76,180 @@ unsigned long RawSignal_2_Nodo(int RawIndexStart)
   }
 
 
-
-int RkrMinMax(int RawIndexStart, int Median, int What) {
-	int x;
-	unsigned int Min=0xffff;
-	unsigned int Max=0x0;//RKR
-	int xEnd = RawSignal[RawIndexStart] + RawIndexStart;
-
-	// Kleinste, groter dan mid
-	// Grootste, kleinder dan mid
-	// diff > x?
-	// dan replace by median
-	// zoek de kortste tijd (PULSE en SPACE)
-	// 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
-	for (x = 5 + RawIndexStart; x <= xEnd-4; x+=2) {
-			unsigned int value = ((What < 2) ? RawSignal[x] // pulse
-							   : ((What < 4) ? RawSignal[x + 1] //space
-											:  RawSignal[x] + RawSignal[x + 1])); // pulse + space
-		if (value < Min && value >= Median) {
-			Min=value; // Zoek naar de kortste pulstijd.
-		}
-		if (value > Max  && value <= Median) {
-			Max=value; // Zoek naar de langste pulstijd.
-		}
-	}
-	return (What%2)==1 ? Max : Min;
-}
-
+
 void PrintDash(void)
   {
-  Serial.print('-');
+  PrintChar('-');
   }
+
+int RkrMinMax(int RawIndexStart, int iPulse, int What) {
+	int i=1;
+	int iEnd=RawSignal[iPulse];
+	if (RawSignal[RawIndexStart] < 10) {
+		return 0;
+	}
+	if (RawIndexStart + RawSignal[RawIndexStart] >= iPulse) {
+		PrintNum(RawIndexStart,false, 3);
+		PrintNum(RawIndexStart + RawSignal[RawIndexStart],true, 3);
+		PrintNum(iPulse,true, 3);
+		Serial.print("RkrMinMax Overflow\n");
+		return 0;
+	}
+
+#if 0
+	PrintTerm();
+	Serial.print(iPulse,DEC);
+	PrintChar('*');
+	Serial.print(iEnd,DEC);
+	PrintChar('*');
+	Serial.print(What,DEC);
+	PrintTerm();
+#endif
+#if 0
+	return iEnd;
+#endif
+#if 0
+	for (int j=3;j<15 && ((iPulse + j) < (RAW_BUFFER_PULSELEN_SIZE - 2));j++){
+				RawSignal[iPulse + j] = RawSignal[iPulse + 2];
+	}
+#endif
+#if 0
+	return iEnd;
+#endif
+	while ((i < iEnd) && (iEnd < (RAW_BUFFER_PULSELEN_SIZE - 2))) {
+		unsigned int Min=RawSignal[iPulse + i + 1];
+		unsigned int Max=RawSignal[iPulse + i + 0]; //RKR
+
+#if 1
+		//PrintChar(' ');
+		PrintTerm();
+		Serial.print(i,DEC);
+		PrintChar(':');
+		Serial.print(iEnd,DEC);
+		PrintChar(':');
+		Serial.print(Max,DEC);
+		PrintChar('-');
+		Serial.print(Min,DEC);
+		for(int j = 0; j <= iEnd; j++) {
+			PrintChar('#');
+			Serial.print(RawSignal[iPulse+j],DEC);
+		}
+#endif
+#if 1
+		if (i > 16) {
+			return iEnd;
+		}
+#endif
+		if ((Min > Max) && ((Min-Max) > 200)) {
+			unsigned int Median=Max + (((Min-Max) > 400) ? 200 : ((Min-Max)/2)); // currently inverted min/max
+			int x = 5 + RawIndexStart;
+			int xEnd = RawSignal[RawIndexStart] + RawIndexStart;
+
+			PrintChar('-');
+			Serial.print(Median,DEC);
+#if 1
+#if 0
+			PrintTerm();
+			Serial.print(x,DEC);
+			PrintChar('*');
+			Serial.print(xEnd,DEC);
+			PrintTerm();
+#endif
+			if (i > 12 || xEnd >= RAW_BUFFER_SIZE) {
+				break;
+			}
+#endif
+		//	unsigned int MinCount =0;
+		//	unsigned int MaxCount =0;
+
+			// Kleinste, groter dan mid
+			// Grootste, kleinder dan mid
+			// diff > x?
+			// dan replace by median
+			// zoek de kortste tijd (PULSE en SPACE)
+			// 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
+			for (x = 5 + RawIndexStart; x <= xEnd-4; x+=2) {
+#if 1
+				unsigned int value = ((What == 0) ? RawSignal[x] // pulse
+									   : ((What == 1) ? RawSignal[x + 1] //space
+													:  (RawSignal[x] + RawSignal[x + 1]))); // pulse + space
+#else
+				unsigned int value;
+				switch (What) {
+				case 0:
+					value = RawSignal[x]; // pulse
+					break;
+				case 1:
+					value = RawSignal[x+1]; // pulse
+					break;
+				default:
+					value =  RawSignal[x] + RawSignal[x + 1]; // pulse + space
+					break;
+				}
+#endif
+				if (value < Min && value >= Median) {
+					Min=value; // Zoek naar de kortste pulstijd.
+				}
+				if (value > Max  && value <= Median) {
+					Max=value; // Zoek naar de langste pulstijd.
+				}
+			}
+			PrintChar('!');
+			Serial.print(Max,DEC);
+			PrintChar('-');
+			Serial.print(Min,DEC);
+
+			// at least one new value found: extend with 2
+			if (/* (Min != Max) && */ !((Min==RawSignal[iPulse + i + 1]) && (Max==RawSignal[iPulse + i + 0]))) {
+				//return iEnd;
+				// extend array with 2
+				iEnd += 2;
+				RawSignal[iPulse] = iEnd;
+				for (int j = iEnd; j > i+2; j--) {
+					RawSignal[iPulse + j] = RawSignal[iPulse + j - 2];
+				}
+				RawSignal[iPulse + i + 1] = Max;
+				RawSignal[iPulse + i + 2] = Min;
+			}
+			else {
+				i++;
+			}
+		}
+		else {
+			i++;
+		}
+#if 0
+		return iEnd;
+#endif
+	}
+#if 0
+	PrintTerm();
+	Serial.print(iPulse,DEC);
+	PrintChar('*');
+	Serial.print(iEnd,DEC);
+#else
+	//PrintChar(' ');
+	PrintTerm();
+	PrintChar('[');
+	for(int j = 1; j <= iEnd; j++) {
+		if (j > 1) {
+			if (j%2==0) {
+				PrintChar('-');
+			}
+			else {
+				PrintChar('/');
+			}
+
+		}
+		Serial.print(RawSignal[iPulse+j],DEC);
+	}
+	PrintChar(']');
+	PrintTerm();
+#endif
+
+	return iEnd;
+}
+
 
  /**********************************************************************************************\
  * Deze functie genereert uit een willekeurig gevulde RawSignal afkomstig van de meeste
@@ -217,19 +360,22 @@ unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint) {
 	while (x<xEnd);
 
 	if (fPrint) {
+		int iPulse = RAW_BUFFER_PULSELEN_START;
+
 		Serial.print(" RAW P ");
 		Serial.print(RawSignal[RawIndexStart+1],DEC); // start pulse/preamble
 		PrintComma();
 		Serial.print(MinPulseP,DEC);
-		if (MaxPulse-MinPulseP > 100) {
-			PrintDash();
-			Serial.print(RkrMinMax(RawIndexStart, MinPulseP + (MaxPulse-MinPulseP)/2, 1) ,DEC);
-		}
+
+		//if (MaxPulse-MinPulseP > 100) {
+		//	PrintDash();
+		//	Serial.print(RkrMinMax(RawIndexStart, MinPulseP + (MaxPulse-MinPulseP)/2, 1) ,DEC);
+		//}
 		PrintComma();
-		if (MaxPulse-MinPulseP > 100) {
-			Serial.print(RkrMinMax(RawIndexStart, MinPulseP + (MaxPulse-MinPulseP)/2, 0) ,DEC);
-			PrintDash();
-		}
+		//if (MaxPulse-MinPulseP > 100) {
+		//	Serial.print(RkrMinMax(RawIndexStart, MinPulseP + (MaxPulse-MinPulseP)/2, 0) ,DEC);
+		//	PrintDash();
+		//}
 		Serial.print(MaxPulse,DEC);
 		PrintComma();
 		Serial.print(MaxPulse-MinPulseP,DEC);
@@ -237,19 +383,28 @@ unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint) {
 		Serial.print(Counter_pulse,DEC);
 		PrintComma();
 		PrintValue(CodeP);
+#if 1
+		RawSignal[iPulse] = 2;
+		RawSignal[iPulse+1] = MinPulseP;
+		RawSignal[iPulse+2] = MaxPulse;
+		RkrMinMax(RawIndexStart, iPulse, 0); // Pulse
+#else
+		PrintComma();
+		Serial.print(iPulse,DEC);
+#endif
 		Serial.print(", RAW S ");
 		Serial.print(RawSignal[RawIndexStart+2],DEC); // start space/preamble
 		PrintComma();
 		Serial.print(MinSpaceP,DEC);
-		if (MaxSpace-MinSpaceP > 100) {
-			PrintDash();
-			Serial.print(RkrMinMax(RawIndexStart, MinSpaceP + (MaxSpace-MinSpaceP)/2, 3) ,DEC);
-		}
+		//if (MaxSpace-MinSpaceP > 100) {
+		//	PrintDash();
+		//	Serial.print(RkrMinMax(RawIndexStart, MinSpaceP + (MaxSpace-MinSpaceP)/2, 3) ,DEC);
+		//}
 		PrintComma();
-		if (MaxSpace-MinSpaceP > 100) {
-			Serial.print(RkrMinMax(RawIndexStart, MinSpaceP + (MaxSpace-MinSpaceP)/2, 2) ,DEC);
-			PrintDash();
-		}
+		//if (MaxSpace-MinSpaceP > 100) {
+		//	Serial.print(RkrMinMax(RawIndexStart, MinSpaceP + (MaxSpace-MinSpaceP)/2, 2) ,DEC);
+		//	PrintDash();
+		//}
 		Serial.print(MaxSpace,DEC);
 		PrintComma();
 		Serial.print(MaxSpace-MinSpaceP,DEC);
@@ -257,19 +412,30 @@ unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint) {
 		Serial.print(Counter_space,DEC);
 		PrintComma();
 		PrintValue(CodeS);
+#if 1
+		iPulse += RawSignal[iPulse] + 1;
+		RawSignal[iPulse] = 2;
+		RawSignal[iPulse+1] = MinSpaceP;
+		RawSignal[iPulse+2] = MaxSpace;
+		RkrMinMax(RawIndexStart, iPulse, 1); // Space
+#else
+		PrintComma();
+		Serial.print(iPulse,DEC);
+#endif
 		Serial.print(", RAW PS ");
+
 		Serial.print(RawSignal[RawIndexStart+1] + RawSignal[RawIndexStart+2],DEC); // start space/preamble
 		PrintComma();
 		Serial.print(MinPulseSpace,DEC);
-		if (MaxPulseSpace-MinPulseSpace > 100) {
-			PrintDash();
-			Serial.print(RkrMinMax(RawIndexStart, MinPulseSpace + (MaxPulseSpace-MinPulseSpace)/2, 5) ,DEC);
-		}
+		//if (MaxPulseSpace-MinPulseSpace > 100) {
+		//	PrintDash();
+		//	Serial.print(RkrMinMax(RawIndexStart, MinPulseSpace + (MaxPulseSpace-MinPulseSpace)/2, 5) ,DEC);
+		//}
 		PrintComma();
-		if (MaxPulseSpace-MinPulseSpace > 100) {
-			Serial.print(RkrMinMax(RawIndexStart, MinPulseSpace + (MaxPulseSpace-MinPulseSpace)/2, 4) ,DEC);
-			PrintDash();
-		}
+		//if (MaxPulseSpace-MinPulseSpace > 100) {
+		//	Serial.print(RkrMinMax(RawIndexStart, MinPulseSpace + (MaxPulseSpace-MinPulseSpace)/2, 4) ,DEC);
+		//	PrintDash();
+		//}
 		Serial.print(MaxPulseSpace,DEC);
 		PrintComma();
 		Serial.print(MaxPulseSpace-MinPulseSpace,DEC);
@@ -277,6 +443,16 @@ unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint) {
 		Serial.print(Counter_pulse + Counter_space,DEC);
 		PrintComma();
 		PrintValue(CodeS^CodeP);
+#if 1
+		iPulse += RawSignal[iPulse] + 1;
+		RawSignal[iPulse] = 2;
+		RawSignal[iPulse+1] = MinPulseSpace;
+		RawSignal[iPulse+2] = MaxPulseSpace;
+		RkrMinMax(RawIndexStart, iPulse, 2); // Pulse + Space
+#else
+		PrintComma();
+		Serial.print(iPulse,DEC);
+#endif
 	}
 
 	if(Counter_pulse>=1 && Counter_space<=1) {

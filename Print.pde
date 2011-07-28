@@ -153,11 +153,17 @@ void PrintNum(unsigned int x, bool fPrintComma, unsigned int digits) {
 }
 
 void PrintRawSignal(int RawIndexStart) {
-	byte x;
+	unsigned int x;
 	unsigned int i;
 	bool fPrintPulseAndSpace = true;
-	byte xEnd = RawSignal[RawIndexStart] + RawIndexStart;
+	unsigned int  xEnd = RawSignal[RawIndexStart] + RawIndexStart;
 	//total time
+	if ((RawIndexStart > RAW_BUFFER_SIZE+2) || (xEnd > RAW_BUFFER_SIZE+2)) {
+		PrintNum(RawIndexStart,false, 3);
+		PrintNum(xEnd,true, 3);
+		Serial.print("PrintRawSignal Overflow\n");
+		return;
+	}
 	i = 0;
 	for(int x=1+RawIndexStart;x<=xEnd;x++) {
 		i += RawSignal[x];
