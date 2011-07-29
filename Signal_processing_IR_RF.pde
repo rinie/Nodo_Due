@@ -83,6 +83,57 @@ void PrintDash(void)
   }
 
 #undef RKRMINMAX_VERBOSE
+void RkrMinMaxReplaceMedian(int RawIndexStart, unsigned int Min, unsigned int Max, unsigned int Median, int What) {
+//	int x = 5 + RawIndexStart;
+	int xEnd = RawSignal[RawIndexStart] + RawIndexStart;
+	if (What > 1) {
+		return;
+	}
+	// 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
+	for (int x = 1 + RawIndexStart; x <= xEnd-1; x+=2) {
+		unsigned int value = RawSignal[x + What];
+		if (value >= Min && value <= Max) {
+				RawSignal[x + What] = Median;
+		}
+	}
+}
+
+#define RKR_MEDIANROUNDING
+
+#ifdef 	RKR_MEDIANROUNDING	// Try Median rounding
+unsigned int RkrRoundTime(unsigned int Median) {
+	if (Median > 2000) { // round 100
+		Median = ((Median + 50) / 100) * 100;
+	}
+	else if (Median > 100) { // round 10
+		Median = ((Median + 5) / 10) * 10;
+	}
+	return Median;
+}
+#endif
+
+void RkrMinMaxPsReplaceMedian(int RawIndexStart) {
+	int iPulse = RAW_BUFFER_PULSELEN_START;
+	for (int What = 0; What < 2; What++) {
+		int i=1;
+		int iEnd=RawSignal[iPulse];
+		for (i = 1; i < iEnd; i+=2) {
+				unsigned int Min = RawSignal[iPulse + i];
+				unsigned int Max = RawSignal[iPulse + i + 1];
+				unsigned int Median = Min + (Max-Min) / 2;
+#ifdef 	RKR_MEDIANROUNDING	// Try Median rounding
+				Median = RkrRoundTime(Median);
+#endif
+				RkrMinMaxReplaceMedian(RawIndexStart, Min, Max, Median, What);
+		}
+#ifdef 	RKR_MEDIANROUNDING	// Rounding sync/preamble as well
+		RawSignal[RawIndexStart + 1 + What] = RkrRoundTime(RawSignal[RawIndexStart + 1 + What]);
+		RawSignal[RawIndexStart + 3 + What] = RkrRoundTime(RawSignal[RawIndexStart + 3 + What]);
+#endif
+		iPulse += RawSignal[iPulse] + 1;
+	}
+}
+
 
 int RkrMinMax(int RawIndexStart, int iPulse, int What) {
 	int i=1;
@@ -165,7 +216,8 @@ int RkrMinMax(int RawIndexStart, int iPulse, int What) {
 			// dan replace by median
 			// zoek de kortste tijd (PULSE en SPACE)
 			// 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
-			for (x = 5 + RawIndexStart; x <= xEnd-4; x+=2) {
+			// RKR try 3 instead of 5 for starters
+			for (x = 3 + RawIndexStart; x <= xEnd-4; x+=2) {
 #if 1
 				unsigned int value = ((What == 0) ? RawSignal[x] // pulse
 									   : ((What == 1) ? RawSignal[x + 1] //space
@@ -253,6 +305,8 @@ int RkrMinMax(int RawIndexStart, int iPulse, int What) {
 
 	return iEnd;
 }
+
+
 
 
  /**********************************************************************************************\

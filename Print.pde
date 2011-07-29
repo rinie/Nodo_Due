@@ -157,6 +157,10 @@ void PrintRawSignal(int RawIndexStart) {
 	unsigned int i;
 	bool fPrintPulseAndSpace = true;
 	unsigned int  xEnd = RawSignal[RawIndexStart] + RawIndexStart;
+#ifdef RAW_BUFFER_PULSELEN_START
+	int iPulse = RAW_BUFFER_PULSELEN_START;
+	RawSignal[iPulse] = 0;
+#endif
 	//total time
 	if ((RawIndexStart > RAW_BUFFER_SIZE+2) || (xEnd > RAW_BUFFER_SIZE+2)) {
 		PrintNum(RawIndexStart,false, 3);
@@ -219,30 +223,38 @@ void PrintRawSignal(int RawIndexStart) {
 	// todo print min/max and minButOne/maxButOne
 	RawSignal_2_32bit(RawIndexStart, true);
 //	PrintTerm();
+	for (i=0; i < 2; i++) {
+		//  PrintText(Text_07,false);
+		for(int x=1+RawIndexStart;x<=xEnd;x++) {
+			if ((x - (1+RawIndexStart))%16==0) {
+					PrintTerm();
+					PrintNum(x - (1+RawIndexStart), false, 4);
+					PrintChar(':');
+					PrintNum(RawSignal[x], false, 4);
+			}
+			else {
+				PrintNum(RawSignal[x], true, 4);
+			}
+			if (fPrintPulseAndSpace) { // mark + space
+				if ((x - (1+RawIndexStart))%2==1) {
+					Serial.print(" [");
+					PrintNum(RawSignal[x] + RawSignal[x-1], false, 4);
+					PrintChar(']');
+				}
+			}
 
-	//  PrintText(Text_07,false);
-	for(int x=1+RawIndexStart;x<=xEnd;x++) {
-		if ((x - (1+RawIndexStart))%16==0) {
-				PrintTerm();
-				PrintNum(x - (1+RawIndexStart), false, 4);
-				PrintChar(':');
-				PrintNum(RawSignal[x], false, 4);
 		}
-		else {
-			PrintNum(RawSignal[x], true, 4);
-		}
-		if (fPrintPulseAndSpace) { // mark + space
-			if ((x - (1+RawIndexStart))%2==1) {
-				Serial.print(" [");
-				PrintNum(RawSignal[x] + RawSignal[x-1], false, 4);
-				PrintChar(']');
+		PrintTerm();
+		if (i == 0) {
+			if (RawSignal[iPulse] != 0) {
+				RkrMinMaxPsReplaceMedian(RawIndexStart);
+				Serial.print("!Rounded");
+			}
+			else {
+				i = 2;
 			}
 		}
-
 	}
-//  PrintChar(')');
-//  Serial.print(x,DEC);
-	PrintTerm();
 }
 
 #endif
