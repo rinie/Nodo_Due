@@ -82,6 +82,8 @@ void PrintDash(void)
   PrintChar('-');
   }
 
+#undef RKRMINMAX_VERBOSE
+
 int RkrMinMax(int RawIndexStart, int iPulse, int What) {
 	int i=1;
 	int iEnd=RawSignal[iPulse];
@@ -120,7 +122,7 @@ int RkrMinMax(int RawIndexStart, int iPulse, int What) {
 		unsigned int Min=RawSignal[iPulse + i + 1];
 		unsigned int Max=RawSignal[iPulse + i + 0]; //RKR
 
-#if 1
+#ifdef RKRMINMAX_VERBOSE
 		//PrintChar(' ');
 		PrintTerm();
 		Serial.print(i,DEC);
@@ -145,17 +147,12 @@ int RkrMinMax(int RawIndexStart, int iPulse, int What) {
 			int x = 5 + RawIndexStart;
 			int xEnd = RawSignal[RawIndexStart] + RawIndexStart;
 
+#ifdef RKRMINMAX_VERBOSE
 			PrintChar('-');
 			Serial.print(Median,DEC);
-#if 1
-#if 0
-			PrintTerm();
-			Serial.print(x,DEC);
-			PrintChar('*');
-			Serial.print(xEnd,DEC);
-			PrintTerm();
 #endif
-			if (i > 12 || xEnd >= RAW_BUFFER_SIZE) {
+#if 1
+			if (i > 12 || (xEnd >= RAW_BUFFER_SIZE+2)) {
 				break;
 			}
 #endif
@@ -194,11 +191,12 @@ int RkrMinMax(int RawIndexStart, int iPulse, int What) {
 					Max=value; // Zoek naar de langste pulstijd.
 				}
 			}
+#ifdef RKRMINMAX_VERBOSE
 			PrintChar('!');
 			Serial.print(Max,DEC);
 			PrintChar('-');
 			Serial.print(Min,DEC);
-
+#endif
 			// at least one new value found: extend with 2
 			if (/* (Min != Max) && */ !((Min==RawSignal[iPulse + i + 1]) && (Max==RawSignal[iPulse + i + 0]))) {
 				//return iEnd;
@@ -229,7 +227,11 @@ int RkrMinMax(int RawIndexStart, int iPulse, int What) {
 	Serial.print(iEnd,DEC);
 #else
 	//PrintChar(' ');
+#ifdef RKRMINMAX_VERBOSE
 	PrintTerm();
+#else
+	PrintChar(' ');
+#endif
 	PrintChar('[');
 	for(int j = 1; j <= iEnd; j++) {
 		if (j > 1) {
@@ -244,7 +246,9 @@ int RkrMinMax(int RawIndexStart, int iPulse, int What) {
 		Serial.print(RawSignal[iPulse+j],DEC);
 	}
 	PrintChar(']');
+#ifdef RKRMINMAX_VERBOSE
 	PrintTerm();
+#endif
 #endif
 
 	return iEnd;
