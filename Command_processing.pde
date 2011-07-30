@@ -26,7 +26,7 @@ byte NodoType(unsigned long Content)
   // als het geen Nodo event of commando was dan zowieso geen commando
   if(((Content>>28)&0xf)!=SIGNAL_TYPE_NODO)
     return false;
-  
+
   // als het een UserEvent was, dan is die altijd voor deze Nodo
   if(((Content>>16)&0xff)==CMD_USER_EVENT)
     return NODO_TYPE_EVENT;
@@ -35,7 +35,7 @@ byte NodoType(unsigned long Content)
   x=(Content>>24)&0xf;
   if(x!=S.Unit && x!=0)
     return false;
- 
+
   x=(Content>>16)&0xff;
   if(x<=RANGE_VALUE)
     return false;
@@ -44,12 +44,12 @@ byte NodoType(unsigned long Content)
     return NODO_TYPE_EVENT;
 
   return NODO_TYPE_COMMAND;
-  }  
-  
+  }
+
 
 /*********************************************************************************************\
  * Deze functie checked of de code die ontvangen is een geldige uitvoerbare opdracht is
- * Als het een correct commando is wordt een false teruggegeven 
+ * Als het een correct commando is wordt een false teruggegeven
  * in andere gevallen een foutcode
  \*********************************************************************************************/
 #define ERROR_PAR1     1
@@ -59,21 +59,21 @@ byte NodoType(unsigned long Content)
 byte CommandError(unsigned long Content)
   {
   byte x;
-  
+
   x=NodoType(Content);
   if(x!=NODO_TYPE_COMMAND && x!=NODO_TYPE_EVENT)
     return ERROR_COMMAND;
-  
+
   byte Command      = (Content>>16)&0xff;
   byte Par1         = (Content>>8)&0xff;
   byte Par2         = Content&0xff;
-  
+
   switch(Command)
     {
     //test; geen, altijd goed
     case CMD_ERROR:
-    case CMD_WAITFREERF: 
-    case CMD_VARIABLE_EVENT:    
+    case CMD_WAITFREERF:
+    case CMD_VARIABLE_EVENT:
     case CMD_DLS_EVENT:
     case CMD_CLOCK_EVENT_DAYLIGHT:
     case CMD_CLOCK_EVENT_ALL:
@@ -87,7 +87,7 @@ byte CommandError(unsigned long Content)
     case CMD_STATUS:
     case CMD_DISPLAY: // ??? foutieve invoer nog afvangen
     case CMD_DELAY:
-    case CMD_SOUND: 
+    case CMD_SOUND:
     case CMD_SEND_SIGNAL:
     case CMD_USER_EVENT:
     case CMD_SEND_USEREVENT:
@@ -97,9 +97,9 @@ byte CommandError(unsigned long Content)
     case CMD_KAKU:
     case CMD_SEND_KAKU:
       return false;
- 
+
     case CMD_SEND_KAKU_NEW:
-    case CMD_KAKU_NEW:    
+    case CMD_KAKU_NEW:
       if(Par2==VALUE_ON || Par2==VALUE_OFF || Par2<=16)return false;
       return ERROR_PAR2;
 
@@ -108,64 +108,67 @@ byte CommandError(unsigned long Content)
     case CMD_EVENTLIST_WRITE:
     case CMD_EVENTLIST_SHOW:
     case CMD_RESET:
-    case CMD_EVENTLIST_ERASE: 
-      if(Par1!=0)return ERROR_PAR1;    
-      if(Par2!=0)return ERROR_PAR2;    
-      return false; 
-      
-    case CMD_VARIABLE_SET:   
+    case CMD_EVENTLIST_ERASE:
+      if(Par1!=0)return ERROR_PAR1;
+      if(Par2!=0)return ERROR_PAR2;
+      return false;
+
+    case CMD_VARIABLE_SET:
     case CMD_TIMER_SET_SEC:
     case CMD_TIMER_SET_MIN:
       if(Par1>USER_VARIABLES_MAX)return ERROR_PAR1;
       return false;
 
     // test:Par1 binnen bereik maximaal beschikbare variabelen
-    case CMD_VARIABLE_INC: 
-    case CMD_VARIABLE_DEC: 
+    case CMD_VARIABLE_INC:
+    case CMD_VARIABLE_DEC:
     case CMD_BREAK_ON_VAR_NEQU:
     case CMD_BREAK_ON_VAR_MORE:
     case CMD_BREAK_ON_VAR_LESS:
     case CMD_BREAK_ON_VAR_EQU:
       if(Par1<1 || Par1>USER_VARIABLES_MAX)return ERROR_PAR1;
       return false;
-      
+
     // test:Par1 en Par2 binnen bereik maximaal beschikbare variabelen
     case CMD_SEND_VAR_USEREVENT:
     case CMD_VARIABLE_VARIABLE:
       if(Par1<1 || Par1>USER_VARIABLES_MAX)return ERROR_PAR1;
       if(Par2<1 || Par2>USER_VARIABLES_MAX)return ERROR_PAR2;
       return false;
-        
+
+#ifdef WIRED // RKR make optional to save space
     // test:Par1 binnen bereik maximaal beschikbare variabelen, Par2 is een geldige WIRED_IN
     case CMD_VARIABLE_WIRED_ANALOG:
       if(Par1<1 || Par1>USER_VARIABLES_MAX)return ERROR_PAR1;
       if(Par2<1 || Par2>4)return ERROR_PAR2;
       return false;
- 
+#endif
+
+#ifdef USERTIMER // RKR make optional to save space
     // test:Par1 binnen bereik maximaal beschikbare timers
     case CMD_TIMER_EVENT:
     case CMD_TIMER_RANDOM:
       if(Par1<1 || Par1>TIMER_MAX)return ERROR_PAR1;
       return false;
-
+#endif
     // test:Par1 binnen bereik maximaal beschikbare variabelen,0 mag ook (=alle variabelen)
-
+#ifdef WIRED // RKR make optional to save space
     case CMD_WIRED_RANGE:
       if(Par1<1 || Par1>4)return ERROR_PAR1; // poort
       if(Par2>4)return ERROR_PAR2; // range
       return false;
-
+#endif
     // Par1 alleen 0,1 of 7
     case CMD_SIMULATE_DAY:
       if(Par1!=0 && Par1!=1 && Par1!=7)return ERROR_PAR1;
       return false;
-      
+
     // geldig jaartal
     case CMD_CLOCK_YEAR:
       if(Par1>21)return ERROR_PAR1;
       return false;
-    
-    // geldige tijd    
+
+    // geldige tijd
     case CMD_CLOCK_TIME:
       if(Par1>23)return ERROR_PAR1;
       if(Par2>59)return ERROR_PAR2;
@@ -180,7 +183,8 @@ byte CommandError(unsigned long Content)
     case CMD_CLOCK_DOW:
       if(Par1<1 || Par1>7)return ERROR_PAR1;
       return false;
-       
+
+#ifdef WIRED // RKR make optional to save space
     // test:Par1 binnen bereik maximaal beschikbare wired poorten, Par2 [0..255]
     case CMD_WIRED_IN_EVENT:
     case CMD_WIRED_ANALOG:
@@ -195,7 +199,7 @@ byte CommandError(unsigned long Content)
       if(Par1<1 || Par1>4)return ERROR_PAR1;
       if(Par2!=VALUE_ON && Par2!=VALUE_OFF)return ERROR_PAR2;
       return false;
-
+#endif
     case CMD_COPYSIGNAL:
       if(Par1!=VALUE_RF_2_IR && Par1!=VALUE_IR_2_RF)
       return false;
@@ -237,7 +241,7 @@ byte CommandError(unsigned long Content)
           break;
         default:
           return ERROR_PAR2;
-        } 
+        }
       return false;
 
      // par1 alleen On of Off.
@@ -245,7 +249,7 @@ byte CommandError(unsigned long Content)
       if(Par1!=VALUE_OFF && Par1!=VALUE_ON)return ERROR_PAR1;
       return false;
 
-    case CMD_DIVERT:   
+    case CMD_DIVERT:
      if(Par1>UNIT_MAX)return ERROR_PAR1;
      return false;
 
@@ -258,17 +262,17 @@ byte CommandError(unsigned long Content)
     }
   }
 
- 
+
 /*********************************************************************************************\
  * Deze functie checked of de code die ontvangen is een uitvoerbare opdracht is/
- * Als het een correct commando is wordt deze uitgevoerd en 
+ * Als het een correct commando is wordt deze uitgevoerd en
  * true teruggegeven. Zo niet dan wordt er een 'false' retour gegeven.
- * 
+ *
  \*********************************************************************************************/
 
 boolean ExecuteCommand(unsigned long Content, int Src, unsigned long PreviousContent, int PreviousSrc)
   {
-  unsigned long Event, Action;  
+  unsigned long Event, Action;
   int x,y;
 
   byte error        = false;
@@ -277,150 +281,158 @@ boolean ExecuteCommand(unsigned long Content, int Src, unsigned long PreviousCon
   byte Par2         = Content&0xff;
   byte Type         = (Content>>28)&0x0f;
   byte PreviousType = (PreviousContent>>28)&0x0f;
-  
+
   if(error=CommandError(Content))// als er een error is, dan een error-event genereren en verzenden.
     {
     TransmitCode(command2event(CMD_ERROR,Command,error),SIGNAL_TYPE_NODO);
     return false;
     }
   else // geen fouten, dan verwerken
-    {        
+    {
     switch(Command)
-      {   
+      {
       case CMD_SEND_KAKU:
         TransmitCode(command2event(CMD_KAKU,Par1,Par2),SIGNAL_TYPE_KAKU);
         break;
-        
+
       case CMD_SEND_KAKU_NEW:
         TransmitCode(command2event(CMD_KAKU_NEW,Par1,Par2),SIGNAL_TYPE_NEWKAKU);
         break;
-        
-      case CMD_VARIABLE_INC: 
+
+#ifdef USERVAR // RKR make optional to save space
+      case CMD_VARIABLE_INC:
         if((S.UserVar[Par1-1]+Par2)<=255) // alleen ophogen als variabele nog niet de maximale waarde heeft.
           {
           S.UserVar[Par1-1]+=Par2;
           SaveSettings();
           }
-        break;        
-  
-      case CMD_VARIABLE_DEC: 
+        break;
+
+      case CMD_VARIABLE_DEC:
         if((S.UserVar[Par1-1]-Par2)>=0) // alleen decrement als variabele hierdoor niet negatief wordt
           {
           S.UserVar[Par1-1]-=Par2;
           SaveSettings();
           }
-        break;        
-  
-      case CMD_VARIABLE_SET:   
+        break;
+
+      case CMD_VARIABLE_SET:
         if(Par1==0)
           for(byte x=0;x<USER_VARIABLES_MAX;x++)
             S.UserVar[x]=Par2;
         else
           S.UserVar[Par1-1]=Par2;
         SaveSettings();
-        break;        
-    
+        break;
+
       case CMD_VARIABLE_VARIABLE:
         S.UserVar[Par1-1]=S.UserVar[Par2-1];
         SaveSettings();
-        break;        
-  
+        break;
+#endif
+#ifdef USERVAR // RKR make optional to save space
+#ifdef WIRED // RKR make optional to save space
       case CMD_VARIABLE_WIRED_ANALOG:
         S.UserVar[Par1-1]=WiredAnalog(Par2-1);
         SaveSettings();
-        break;        
-  
-      case CMD_BREAK_ON_VAR_EQU:
+        break;
+#endif
+#endif
+#ifdef USERVAR // RKR make optional to save space
+	case CMD_BREAK_ON_VAR_EQU:
         if(S.UserVar[Par1-1]==Par2)
           error=true;
         break;
-        
+
       case CMD_BREAK_ON_VAR_NEQU:
         if(S.UserVar[Par1-1]!=Par2)
           error=true;
-        break;        
-  
+        break;
+
       case CMD_BREAK_ON_VAR_MORE:
         if(S.UserVar[Par1-1]>Par2)
           error=true;
-        break;        
-  
+        break;
+
       case CMD_BREAK_ON_VAR_LESS:
         if(S.UserVar[Par1-1]<Par2)
           error=true;
-        break;  
-  
+        break;
+#endif
       case CMD_SEND_USEREVENT:
         // Voeg Unit=0 want een UserEvent is ALTIJD voor ALLE Nodo's. Verzend deze vervolgens.
         TransmitCode(command2event(CMD_USER_EVENT,Par1,Par2),SIGNAL_TYPE_NODO);// Maak Unit=0 want een UserEvent is ALTIJD voor ALLE Nodo's.;
         break;
-  
+
+#ifdef USERVAR // RKR make optional to save space
       case CMD_SEND_VAR_USEREVENT:
         // Maak Unit=0 want een UserEvent is ALTIJD voor ALLE Nodo's. Verzend deze vervolgens.
         TransmitCode(command2event(CMD_USER_EVENT,S.UserVar[Par1-1],S.UserVar[Par2-1])&0xf0ffffff,SIGNAL_TYPE_NODO);// Maak Unit=0 want een UserEvent is ALTIJD voor ALLE Nodo's.;
         break;
-
+#endif
+#ifdef WIRED // RKR make optional to save space
       case CMD_WIRED_ANALOG:
         // Lees de analoge waarde uit en verzend deze
         TransmitCode(command2event(CMD_WIRED_ANALOG,Par1,WiredAnalog(Par1-1)),SIGNAL_TYPE_NODO);
         break;
-
+#endif
       case CMD_SIMULATE_DAY:
         if(Par1==0)Par1=1;
-        SimulateDay(Par1); 
-        break;     
-  
+        SimulateDay(Par1);
+        break;
+
       case CMD_SEND_SIGNAL:
         TransmitCode(0L,SIGNAL_TYPE_UNKNOWN);
-        break;        
-  
+        break;
+
       case CMD_CLOCK_YEAR:
         x=Par1*100+Par2;
         Time.Year=x;
         ClockSet();
         ClockRead();
         break;
-      
+
       case CMD_CLOCK_TIME:
         Time.Hour=Par1;
         Time.Minutes=Par2;
         Time.Seconds=0;
         ClockSet();
         break;
-  
+
       case CMD_CLOCK_DATE: // data1=datum, data2=maand
         Time.Date=Par1;
         Time.Month=Par2;
         ClockSet();
         ClockRead();
         break;
-  
+
       case CMD_CLOCK_DOW:
         Time.Day=Par1;
         ClockSet();
         break;
 
+#ifdef USERTIMER // RKR make optional to save space
       case CMD_TIMER_SET_MIN:
-        // Par1=timer, Par2=minuten. Timers werken op een resolutie van seconden maar worden door de gebruiker ingegeven in minuten        
+        // Par1=timer, Par2=minuten. Timers werken op een resolutie van seconden maar worden door de gebruiker ingegeven in minuten
         TimerSet(Par1,int(Par2)*60);
         break;
-        
+
       case CMD_TIMER_SET_SEC:
-        // Par1=timer, Par2=seconden. Timers werken op een resolutie van seconden.            
+        // Par1=timer, Par2=seconden. Timers werken op een resolutie van seconden.
         TimerSet(Par1,Par2);
         break;
 
       case CMD_TIMER_RANDOM:
         UserTimer[Par1-1]=millis()+random(Par2)*60000;// Par1=timer, Par2=maximaal aantal minuten
         break;
-  
+#endif
       case CMD_DELAY:
         if(Par1)
           {
           HoldTimer=millis()+((unsigned long)(Par1))*1000;
           if(Par2==VALUE_OFF) // Niet opslaan in de queue, maar direct een 'dode' pause uitvoeren.
             {
-            while(HoldTimer>millis())        
+            while(HoldTimer>millis())
               digitalWrite(MonitorLedPin,(millis()>>7)&0x01);
             }
           else
@@ -430,26 +442,27 @@ boolean ExecuteCommand(unsigned long Content, int Src, unsigned long PreviousCon
             Hold=CMD_DELAY;
             loop();
             }
-          }        
+          }
         else
           HoldTimer=0L; //  Wachttijd is afgelopen;
-        break;        
-        
-      case CMD_SOUND: 
+        break;
+
+      case CMD_SOUND:
         Alarm(Par1,Par2);
-        break;     
-    
+        break;
+
+#ifdef WIRED // RKR make optional to save space
       case CMD_WIRED_PULLUP:
         S.WiredInputPullUp[Par1-1]=Par2==VALUE_ON; // Par1 is de poort[1..4], Par2 is de waarde [0..1]
         digitalWrite(14+WiredAnalogInputPin_1+Par1-1,S.WiredInputPullUp[Par1-1]==VALUE_ON);// Zet de pull-up weerstand van 20K voor analoge ingangen. Analog-0 is gekoppeld aan Digital-14
         SaveSettings();
         break;
-                   
+
       case CMD_WIRED_THRESHOLD:
         S.WiredInputThreshold[Par1-1]=Par2; // Par1 is de poort[1..4], Par2 is de waarde [0..255]
         SaveSettings();
         break;
-  
+
       case CMD_WIRED_RANGE:
         S.WiredInputRange[Par1-1]=Par2; // Par1 is de poort[1..4], Par2 is de range [0..4]
         SaveSettings();
@@ -460,23 +473,24 @@ boolean ExecuteCommand(unsigned long Content, int Src, unsigned long PreviousCon
         WiredOutputStatus[Par1-1]=Par2==VALUE_ON;
         PrintEvent(Content,VALUE_SOURCE_WIRED,VALUE_DIRECTION_OUTPUT);
         break;
-                    
+
       case CMD_WIRED_SMITTTRIGGER:
         S.WiredInputSmittTrigger[Par1-1]=Par2; // Par1 is de poort[1..4], Par2 is de waarde [0..255]
         SaveSettings();
         break;
-       
-      case CMD_WAITFREERF: 
+#endif
+
+      case CMD_WAITFREERF:
         S.WaitFreeRF_Delay=Par1;
         S.WaitFreeRF_Window=Par2;
         SaveSettings();
         break;
-  
+
       case CMD_COPYSIGNAL:
-        if(Par1==VALUE_RF_2_IR)CopySignalRF2IR(Par2);      
+        if(Par1==VALUE_RF_2_IR)CopySignalRF2IR(Par2);
         if(Par1==VALUE_IR_2_RF)CopySignalIR2RF(Par2);
-        break;        
-  
+        break;
+
       case CMD_SENDBUSY:
         if(Par1==VALUE_ALL)
           S.SendBusy=true;
@@ -486,7 +500,7 @@ boolean ExecuteCommand(unsigned long Content, int Src, unsigned long PreviousCon
           else
             TransmitCode(command2event(CMD_BUSY,Par1,0),SIGNAL_TYPE_NODO);
         break;
-        
+
       case CMD_WAITBUSY:
         if(Par1==VALUE_ALL)
           S.WaitBusy=true;
@@ -499,13 +513,13 @@ boolean ExecuteCommand(unsigned long Content, int Src, unsigned long PreviousCon
             loop(); // deze recursieve aanroep wordt beëindigd als BusyNodo==0
             }
         break;
-  
+
       case CMD_TRANSMIT_SETTINGS:
         S.TransmitPort=Par1;
         if(Par2)S.TransmitRepeat=Par2;
         SaveSettings();
         break;
-    
+
        case CMD_STATUS:
          Status(Src==VALUE_SOURCE_SERIAL, Par1, Par2);
          break;
@@ -522,9 +536,9 @@ boolean ExecuteCommand(unsigned long Content, int Src, unsigned long PreviousCon
 
 
 
-  
-  
-  
-  
-  
+
+
+
+
+
 

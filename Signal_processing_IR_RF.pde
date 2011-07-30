@@ -579,26 +579,6 @@ void WaitFreeRF(int Delay, int Window)
   }
 
 
- /**********************************************************************************************\
- * Wacht totdat de pin verandert naar status state. Geeft de tijd in uSec. terug.
- * Als geen verandering, dan wordt na timeout teruggekeerd met de waarde 0L
- \*********************************************************************************************/
-unsigned long WaitForChangeState(uint8_t pin, uint8_t state, unsigned long timeout)
-	{
-        uint8_t bit = digitalPinToBitMask(pin);
-        uint8_t port = digitalPinToPort(pin);
-	uint8_t stateMask = (state ? bit : 0);
-	unsigned long numloops = 0; // keep initialization out of time critical area
-	unsigned long maxloops = microsecondsToClockCycles(timeout) / 19;
-
-	// wait for the pulse to stop. One loop takes 19 clock-cycles
-	while((*portInputRegister(port) & bit) == stateMask)
-		if (numloops++ == maxloops)
-			return 0;//timeout opgetreden
-	return clockCyclesToMicroseconds(numloops * 19 + 16);
-	}
-
-
  /*********************************************************************************************\
  * Deze routine zendt een RAW code via RF.
  * De inhoud van de buffer RawSignal moet de pulstijden bevatten.
@@ -682,6 +662,26 @@ void Nodo_2_RawSignal(unsigned long Code)
   RawSignal[0]=66; //  1 startbit bestaande uit een pulse/space + 32-bits is 64 pulse/space = totaal 66
   }
 
+ /**********************************************************************************************\
+ * Wacht totdat de pin verandert naar status state. Geeft de tijd in uSec. terug.
+ * Als geen verandering, dan wordt na timeout teruggekeerd met de waarde 0L
+ \*********************************************************************************************/
+unsigned long WaitForChangeState(uint8_t pin, uint8_t state, unsigned long timeout)
+	{
+        uint8_t bit = digitalPinToBitMask(pin);
+        uint8_t port = digitalPinToPort(pin);
+	uint8_t stateMask = (state ? bit : 0);
+	unsigned long numloops = 0; // keep initialization out of time critical area
+	unsigned long maxloops = microsecondsToClockCycles(timeout) / 19;
+
+	// wait for the pulse to stop. One loop takes 19 clock-cycles
+	while((*portInputRegister(port) & bit) == stateMask)
+		if (numloops++ == maxloops)
+			return 0;//timeout opgetreden
+	return clockCyclesToMicroseconds(numloops * 19 + 16);
+	}
+
+
 
  /**********************************************************************************************\
  * Haal de pulsen en plaats in buffer. Op het moment hier aangekomen is de startbit actief.
@@ -691,49 +691,48 @@ void Nodo_2_RawSignal(unsigned long Code)
  * RKR: Added int RawIndexStart: receive repeated signals in one go
  \*********************************************************************************************/
 
-boolean FetchSignal(byte DataPin, boolean StateSignal, int TimeOut, int RawIndexStart)
-  {
-  int RawCodeLength=RawIndexStart+1;
-  unsigned long PulseLength;
-  	if (RawCodeLength>=RAW_BUFFER_SIZE-4) {
-  		return false;
-  	}
+int FetchSignal(byte DataPin, boolean StateSignal, int TimeOut, int RawIndexStart) {
+	int RawCodeLength=RawIndexStart+1;
+	unsigned long PulseLength;
+	if (RawCodeLength>=RAW_BUFFER_SIZE-4) {
+		return 0;
+	}
 
 	// support for long preamble
-    PulseLength=WaitForChangeState(DataPin, StateSignal, 2*TimeOut); // meet hoe lang signaal LOW (= PULSE van IR signaal)
-    if(PulseLength<MIN_PULSE_LENGTH)return false;
-//    if(PulseLength > TimeOut) {
-//		TimeOut = PulseLength;
-//	}
-    RawSignal[RawCodeLength++]=PulseLength;
-    PulseLength=WaitForChangeState(DataPin, !StateSignal, 2*TimeOut); // meet hoe lang signaal HIGH (= SPACE van IR signaal)
-    if(PulseLength + RawSignal[RawCodeLength-1] > TimeOut) {
-	    if(PulseLength + RawSignal[RawCodeLength-1] > TimeOut + 1000) {
+	PulseLength=WaitForChangeState(DataPin, StateSignal, 2*TimeOut); // meet hoe lang signaal LOW (= PULSE van IR signaal)
+	if (PulseLength<MIN_PULSE_LENGTH) {
+			return 0;
+	}
+	RawSignal[RawCodeLength++]=PulseLength;
+	PulseLength=WaitForChangeState(DataPin, !StateSignal, 2*TimeOut); // meet hoe lang signaal HIGH (= SPACE van IR signaal)
+	if(PulseLength + RawSignal[RawCodeLength-1] > TimeOut) {
+		if(PulseLength + RawSignal[RawCodeLength-1] > TimeOut + 1000) {
 			TimeOut = (PulseLength + RawSignal[RawCodeLength-1]);
 		}
 		else {
 			TimeOut = 2*(PulseLength + RawSignal[RawCodeLength-1] + 1000);
 		}
 	}
-    RawSignal[RawCodeLength++]=PulseLength;
+	RawSignal[RawCodeLength++]=PulseLength;
 
 	// Original code
-  do{// lees de pulsen in microseconden en plaats deze in een tijdelijke buffer
-    PulseLength=WaitForChangeState(DataPin, StateSignal, TimeOut); // meet hoe lang signaal LOW (= PULSE van IR signaal)
-    if(PulseLength<MIN_PULSE_LENGTH)return false;
-    RawSignal[RawCodeLength++]=PulseLength;
-    PulseLength=WaitForChangeState(DataPin, !StateSignal, TimeOut); // meet hoe lang signaal HIGH (= SPACE van IR signaal)
-    RawSignal[RawCodeLength++]=PulseLength;
-    }while(RawCodeLength<RAW_BUFFER_SIZE && PulseLength!=0);// Zolang nog niet alle bits ontvangen en er niet vroegtijdig een timeout plaats vindt
+	do { // lees de pulsen in microseconden en plaats deze in een tijdelijke buffer
+		PulseLength=WaitForChangeState(DataPin, StateSignal, TimeOut); // meet hoe lang signaal LOW (= PULSE van IR signaal)
+		if (PulseLength<MIN_PULSE_LENGTH) {
+			return 0;
+		}
+		RawSignal[RawCodeLength++]=PulseLength;
+		PulseLength=WaitForChangeState(DataPin, !StateSignal, TimeOut); // meet hoe lang signaal HIGH (= SPACE van IR signaal)
+		RawSignal[RawCodeLength++]=PulseLength;
+	} while (RawCodeLength<RAW_BUFFER_SIZE && PulseLength!=0);// Zolang nog niet alle bits ontvangen en er niet vroegtijdig een timeout plaats vindt
 
-  if(RawCodeLength-RawIndexStart>=MIN_RAW_PULSES)
-    {
-    RawSignal[RawIndexStart]=(RawCodeLength-RawIndexStart)-1; // RKR store signal length
-    return true;
-    }
-  RawSignal[RawIndexStart]=0;
-  return false;
-  }
+	if (RawCodeLength-RawIndexStart>=MIN_RAW_PULSES && RawCodeLength<RAW_BUFFER_SIZE) {
+		RawSignal[RawIndexStart]=(RawCodeLength-RawIndexStart)-1; // RKR store signal length
+		return (RawCodeLength-RawIndexStart)-1;
+	}
+	RawSignal[RawIndexStart]=0;
+	return 0;
+}
 
 
 

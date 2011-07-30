@@ -130,6 +130,7 @@ unsigned long str2val(char *string)
  * Timer 1..15. Timer=0 is een wildcard voor alle timers
  * Als de timer op 0 wordt gezet, wordt er geen event gegenereerd.
  \*********************************************************************************************/
+#ifdef USERTIMER // RKR make optional to save space
 void TimerSet(byte Timer, int Time)
   {
   if(Timer==0)// 0=wildcard voor alle timers
@@ -150,7 +151,7 @@ void TimerSet(byte Timer, int Time)
       UserTimer[Timer-1]=millis()+(unsigned long)Time*1000;
     }
   }
-
+#endif
  /*********************************************************************************************\
  * Haal voor het opgegeven Command de status op.
  * Let op: call by reference!
@@ -203,11 +204,12 @@ boolean GetStatus(byte *Command, byte *Par1, byte *Par2)
       *Par1=Time.Daylight;
       break;
 
+#ifdef USERVAR // RKR make optional to save space
     case CMD_VARIABLE_SET:
       *Par1=xPar1;
       *Par2=S.UserVar[xPar1-1];
       break;
-
+#endif
     case CMD_CLOCK_DATE:
       *Par1=Time.Date;
       *Par2=Time.Month;
@@ -226,7 +228,7 @@ boolean GetStatus(byte *Command, byte *Par1, byte *Par2)
       *Par1=Time.Year/100;
       *Par2=Time.Year-2000;
       break;
-
+#ifdef USERTIMER // RKR make optional to save space
     case CMD_TIMER_SET_MIN:
       *Par1=xPar1;
       if(UserTimer[xPar1-1])
@@ -234,7 +236,9 @@ boolean GetStatus(byte *Command, byte *Par1, byte *Par2)
       else
         *Par2=0;
       break;
+#endif
 
+#ifdef WIRED // RKR make optional to save space
     case CMD_WIRED_RANGE:
       *Par1=xPar1;
       *Par2=S.WiredInputRange[xPar1-1];
@@ -269,7 +273,7 @@ boolean GetStatus(byte *Command, byte *Par1, byte *Par2)
       *Par1=xPar1;
       *Par2=(WiredOutputStatus[xPar1-1])?VALUE_ON:VALUE_OFF;
       break;
-
+#endif
     default:
       return false;
     }
@@ -343,6 +347,7 @@ void ResetFactory(void)
   S.WaitFreeRF_Delay   = 0;
   S.DaylightSaving     = Time.DaylightSaving;
 
+#ifdef WIRED // RKR make optional to save space
   for(byte x=0;x<4;x++)
     {
     S.WiredInputThreshold[x]=0x80;
@@ -350,11 +355,12 @@ void ResetFactory(void)
     S.WiredInputRange[x]=0;
     S.WiredInputPullUp[x]=true;
     }
-
+#endif
+#ifdef USERVAR // RKR make optional to save space
   // maak alle variabelen leeg
   for(byte x=0;x<USER_VARIABLES_MAX;x++)
      S.UserVar[x]=0;
-
+#endif
   SaveSettings();
   FactoryEventlist();
   delay(500);// kleine pauze, anders kans fout bij seriële communicatie
@@ -425,6 +431,7 @@ void FreeMemory()
  /**********************************************************************************************\
  * Geeft de analoge waarde [0..255] van de WIRED-IN poort <WiredPort> [0..3]
  \**********************************************************************************************/
+#ifdef WIRED // RKR make optional to save space
 byte WiredAnalog(byte WiredPort)
   {
   int x=analogRead(WiredAnalogInputPin_1+WiredPort);
@@ -446,7 +453,7 @@ byte WiredAnalog(byte WiredPort)
   if(x<0)x=0;
   return x;
   }
-
+#endif
  /**********************************************************************************************\
   * Geeft de status weer of verzendt deze.
   *

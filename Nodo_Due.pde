@@ -359,13 +359,20 @@ PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,31
 #define RAWSIGNAL_MULTI		// RKR Rawsignal can be multiple signals: <count> <timinig data> <count> <timing data> etc...
 //****************************************************************************************************************************************
 
+#undef USERVAR // RKR make optional to save space
+#undef WIRED // RKR make optional to save space
+
 struct Settings
   {
   int     Version;
+#ifdef WIRED // RKR make optional to save space
   byte    WiredInputThreshold[4], WiredInputSmittTrigger[4], WiredInputPullUp[4],WiredInputRange[4];
+#endif
   byte    AnalyseSharpness;
   int     AnalyseTimeOut;
+#ifdef USERVAR // RKR make optional to save space
   byte    UserVar[USER_VARIABLES_MAX];
+#endif
   byte    Unit;
   byte    Display;
   byte    TransmitPort;
@@ -381,8 +388,11 @@ struct Settings
 
 
 // Timers voor de gebruiker
+#undef USERTIMER
+#ifdef USERTIMER // RKR make optional to save space
 #define TIMER_MAX              15      // aantal beschikbare timers voor de user, gerekend vanaf 0 t/m 14
 unsigned long UserTimer[TIMER_MAX];
+#endif
 
 // timers voor verwerking op intervals
 #define Loop_INTERVAL_1          250  // tijdsinterval in ms. voor achtergrondtaken.
@@ -392,8 +402,8 @@ unsigned long LoopIntervalTimer_1=millis();// millis() maakt dat de intervallen 
 unsigned long LoopIntervalTimer_2=0L;
 unsigned long RawStartSignalTime=millis(); // RKR measure time between signals
 unsigned long RawStartSignalTimeLast= 0; // RKR measure time between signals for filtered signals
-#define RAW_BUFFER_SIZE            400 // Maximaal aantal te ontvangen bits*2
-#define RAW_BUFFER_PULSELEN_SIZE	60 // RKR pulse length calculations
+#define RAW_BUFFER_SIZE            472 // Maximaal aantal te ontvangen bits*2
+#define RAW_BUFFER_PULSELEN_SIZE	36 // RKR pulse length calculations
 #define RAW_BUFFER_PULSELEN_START	(RAW_BUFFER_SIZE + 4) // RKR borrow same array
 unsigned int RawSignal[RAW_BUFFER_SIZE+4 + RAW_BUFFER_PULSELEN_SIZE];          // Tabel met de gemeten pulsen in microseconden. eerste waarde is het aantal bits*2
 
@@ -410,11 +420,17 @@ boolean RawsignalGet=true;
 #else
 boolean RawsignalGet=false;
 #endif
+#ifdef WIRED // RKR make optional to save space
 boolean WiredInputStatus[4],WiredOutputStatus[4];   // Wired variabelen
+#endif
 int BusyNodo;                                       // in deze variabele de status van het event 'Busy' van de betreffende units 1 t/m 15. bit-1 = unit-1
+#ifdef USERVAR // RKR make optional to save space
 byte UserVarPrevious[USER_VARIABLES_MAX];
+#endif
 byte DaylightPrevious;                              // t.b.v. voorkomen herhaald genereren van events binnen de lopende minuut waar dit event zich voordoet
+#ifdef WIRED // RKR make optional to save space
 byte WiredCounter=0, VariableCounter;
+#endif
 byte EventlistDepth=0;                              // teller die bijhoudt hoe vaak er binnen een macro weer een macro wordt uitgevoerd. Voorkomt tevens vastlopers a.g.v. loops die door een gebruiker zijn gemaakt met macro's
 byte Hold=false;
 unsigned long Content=0L,ContentPrevious;
@@ -455,21 +471,23 @@ void setup()
 
   if(S.Version!=VERSION)ResetFactory(); // Als versienummer in EEPROM niet correct is, dan een ResetFactory.
 
+#ifdef WIRED // RKR make optional to save space
   // initialiseer de Wired in- en uitgangen
   for(x=0;x<=3;x++)
     {
     pinMode(WiredDigitalOutputPin_1+x,OUTPUT); // definieer Arduino pin's voor Wired-Out
     digitalWrite(14+WiredAnalogInputPin_1+x,S.WiredInputPullUp[x]?HIGH:LOW);// Zet de pull-up weerstand van 20K voor analoge ingangen. Analog-0 is gekoppeld aan Digital-14
     }
-
+#endif
   //Zorg ervoor dat er niet direct na een boot een CMD_CLOCK_DAYLIGHT event optreedt
   ClockRead();
   SetDaylight();
   DaylightPrevious=Time.Daylight;
 
+#ifdef WIRED // RKR make optional to save space
   // Zet statussen WIRED_IN op hoog, anders wordt direct wij het opstarten vier maal een event gegenereerd omdat de pull-up weerstand analoge de waarden op FF zet
   for(x=0;x<4;x++){WiredInputStatus[x]=true;}
-
+#endif
   PrintWelcome();
   ProcessEvent(command2event(CMD_BOOT_EVENT,0,0),VALUE_DIRECTION_INTERNAL,VALUE_SOURCE_SYSTEM,0,0);  // Voer het 'Boot' event uit.
   SerialHold(false);    // Zend een X-Off zodat de nodo geen seriele tekens ontvangt die nog niet verwerkt kunnen worden
@@ -639,6 +657,7 @@ void loop()
       {
       LoopIntervalTimer_1=millis()+Loop_INTERVAL_1; // reset de timer
 
+#ifdef USERTIMER // RKR make optional to save space
       // TIMER: **************** Genereer event als één van de Timers voor de gebruiker afgelopen is ***********************
       for(x=0;x<TIMER_MAX;x++)
         {
@@ -652,7 +671,8 @@ void loop()
             }
           }
         }
-
+#endif
+#ifdef USERVAR // RKR make optional to save space
       // VARIABLE: *************** Behandel gewijzigde variabelen als en binnengekomen event ******************************
       for(x=0;x<USER_VARIABLES_MAX;x++)
         {
@@ -663,13 +683,13 @@ void loop()
           ProcessEvent(Content,VALUE_DIRECTION_INTERNAL,VALUE_SOURCE_VARIABLE,0,0);      // verwerk binnengekomen event.
           }
         }
-
+#endif
+#ifdef WIRED // RKR make optional to save space
       // WIRED: *************** kijk of statussen gewijzigd zijn op WIRED **********************
       if(WiredCounter<3)
         WiredCounter++;
       else
         WiredCounter=0;
-
       // als de huidige waarde groter dan threshold EN de vorige keer was dat nog niet zo DAN verstuur code
       z=false; // vlag om te kijken of er een wijziging is die verzonden moet worden.
       y=WiredAnalog(WiredCounter);
@@ -691,6 +711,7 @@ void loop()
         Content=command2event(CMD_WIRED_IN_EVENT,WiredCounter+1,WiredInputStatus[WiredCounter]?VALUE_ON:VALUE_OFF);
         ProcessEvent(Content,VALUE_DIRECTION_INPUT,VALUE_SOURCE_WIRED,0,0);      // verwerk binnengekomen event.
         }
+#endif
       }// korte interval
     }// // while
   }
