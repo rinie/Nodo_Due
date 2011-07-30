@@ -48,7 +48,7 @@
 #define KAKU_CodeLength    12  // aantal data bits
 #define KAKU_T            350  // us
 
-void KAKU_2_RawSignal(unsigned long Code)
+void KAKU_2_RawSignal(ulong Code)
   {
   byte Home, Unit, Level, Command;
   boolean Group;
@@ -96,12 +96,12 @@ void KAKU_2_RawSignal(unsigned long Code)
 * Deze routine berekent de uit een RawSignal een CMD_KAKU
 * Geeft een false retour als geen geldig KAKU commando uit het signaal te destilleren
 \*********************************************************************************************/
-unsigned long RawSignal_2_KAKU(int RawIndexStart)
+ulong RawSignal_2_KAKU(uint RawIndexStart)
   {
   byte Home, Unit, Level, Command=VALUE_OFF;
   int i,j;
   boolean Group=false;
-  unsigned long bitstream=0;
+  ulong bitstream=0;
 
   // conventionele KAKU bestaat altijd uit 12 data bits plus stop. Ongelijk, dan geen KAKU
   if (RawSignal[RawIndexStart]!=(KAKU_CodeLength*4)+2)return false;
@@ -159,9 +159,9 @@ unsigned long RawSignal_2_KAKU(int RawIndexStart)
 /*********************************************************************************************\
 * Deze routine berekent de RAW pulsen uit een CMD_NEWKAKU plaatst deze in de buffer RawSignal
 \*********************************************************************************************/
-void NewKAKU_2_RawSignal(unsigned long CodeNodo)
+void NewKAKU_2_RawSignal(ulong CodeNodo)
   {
-  unsigned long bitstream=0L;
+  ulong bitstream=0L;
   byte Bit, Level, i=1;
   byte x; /// aantal posities voor pulsen/spaces in RawSignal
   byte y;
@@ -205,7 +205,7 @@ void NewKAKU_2_RawSignal(unsigned long CodeNodo)
         RawSignal[i+3]=NewKAKU_1T;  // moet een T,T,T,T zijn bij een dim commando.
       if(i==127)  // als alle pulsen van de 32-bits weggeschreven zijn
         {
-        bitstream=(unsigned long)Level; //  nog vier extra dim-bits om te verzenden
+        bitstream=(ulong)Level; //  nog vier extra dim-bits om te verzenden
         y=3;
         }
       }
@@ -221,9 +221,9 @@ void NewKAKU_2_RawSignal(unsigned long CodeNodo)
 * Deze routine berekent de uit een RawSignal een CMD_NEWKAKU
 * Geeft een false retour als geen geldig KAKU commando uit het signaal te destilleren
 \*********************************************************************************************/
-unsigned long RawSignal_2_NewKAKU(int RawIndexStart)
+ulong RawSignal_2_NewKAKU(uint RawIndexStart)
   {
-  unsigned long bitstream=0L;
+  ulong bitstream=0L;
   boolean Bit;
   int Level=0,i;
   int iEnd = RawSignal[RawIndexStart];

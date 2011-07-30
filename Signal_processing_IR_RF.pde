@@ -25,9 +25,9 @@
 #define NewKAKUdim_RawSignalLength   148
 #define KAKU_CodeLength    12
 
-unsigned long AnalyzeRawSignal(int RawIndexStart)
+ulong AnalyzeRawSignal(uint RawIndexStart)
   {
-  unsigned long Code=0L;
+  ulong Code=0L;
 
   if(RawSignal[RawIndexStart]>=RAW_BUFFER_SIZE)return 0L;     // Als het signaal een volle buffer beslaat is het zeer waarschijnlijk ruis.
 
@@ -53,9 +53,9 @@ unsigned long AnalyzeRawSignal(int RawIndexStart)
 * Deze routine berekent de uit een RawSignal een NODO code
 * Geeft een false retour als geen geldig NODO signaal
 \*********************************************************************************************/
-unsigned long RawSignal_2_Nodo(int RawIndexStart)
+ulong RawSignal_2_Nodo(uint RawIndexStart)
   {
-  unsigned long bitstream=0L;
+  ulong bitstream=0L;
   int x,y,z;
   int xEnd = RawSignal[RawIndexStart] + RawIndexStart;
   // nieuwe NODO signaal bestaat altijd uit start bit + 32 bits. Ongelijk aan 66, dan geen Nodo signaal
@@ -64,7 +64,7 @@ unsigned long RawSignal_2_Nodo(int RawIndexStart)
   x=3 + RawIndexStart; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e pulslengte
   do{
     if(RawSignal[x]>NODO_PULSE_MID)
-      bitstream|=(long)(1L<<z); //LSB in signaal wordt  als eerste verzonden
+      bitstream|=(ulong)(1L<<z); //LSB in signaal wordt  als eerste verzonden
     x+=2;
     z++;
     }while(x<xEnd);
@@ -77,237 +77,6 @@ unsigned long RawSignal_2_Nodo(int RawIndexStart)
 
 
 
-void PrintDash(void)
-  {
-  PrintChar('-');
-  }
-
-#undef RKRMINMAX_VERBOSE
-void RkrMinMaxReplaceMedian(int RawIndexStart, unsigned int Min, unsigned int Max, unsigned int Median, int What) {
-//	int x = 5 + RawIndexStart;
-	int xEnd = RawSignal[RawIndexStart] + RawIndexStart;
-	if (What > 1) {
-		return;
-	}
-	// 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
-	for (int x = 1 + RawIndexStart; x <= xEnd-1; x+=2) {
-		unsigned int value = RawSignal[x + What];
-		if (value >= Min && value <= Max) {
-				RawSignal[x + What] = Median;
-		}
-	}
-}
-
-#define RKR_MEDIANROUNDING
-
-#ifdef 	RKR_MEDIANROUNDING	// Try Median rounding
-unsigned int RkrRoundTime(unsigned int Median) {
-	if (Median > 2000) { // round 100
-		Median = ((Median + 50) / 100) * 100;
-	}
-	else if (Median > 100) { // round 10
-		Median = ((Median + 5) / 10) * 10;
-	}
-	return Median;
-}
-#endif
-
-void RkrMinMaxPsReplaceMedian(int RawIndexStart) {
-	int iPulse = RAW_BUFFER_PULSELEN_START;
-	for (int What = 0; What < 2; What++) {
-		int i=1;
-		int iEnd=RawSignal[iPulse];
-		for (i = 1; i < iEnd; i+=2) {
-				unsigned int Min = RawSignal[iPulse + i];
-				unsigned int Max = RawSignal[iPulse + i + 1];
-				unsigned int Median = Min + (Max-Min) / 2;
-#ifdef 	RKR_MEDIANROUNDING	// Try Median rounding
-				Median = RkrRoundTime(Median);
-#endif
-				RkrMinMaxReplaceMedian(RawIndexStart, Min, Max, Median, What);
-		}
-#ifdef 	RKR_MEDIANROUNDING	// Rounding sync/preamble as well
-		RawSignal[RawIndexStart + 1 + What] = RkrRoundTime(RawSignal[RawIndexStart + 1 + What]);
-		RawSignal[RawIndexStart + 3 + What] = RkrRoundTime(RawSignal[RawIndexStart + 3 + What]);
-#endif
-		iPulse += RawSignal[iPulse] + 1;
-	}
-}
-
-
-int RkrMinMax(int RawIndexStart, int iPulse, int What) {
-	int i=1;
-	int iEnd=RawSignal[iPulse];
-	if (RawSignal[RawIndexStart] < 10) {
-		return 0;
-	}
-	if (RawIndexStart + RawSignal[RawIndexStart] >= iPulse) {
-		PrintNum(RawIndexStart,false, 3);
-		PrintNum(RawIndexStart + RawSignal[RawIndexStart],true, 3);
-		PrintNum(iPulse,true, 3);
-		Serial.print("RkrMinMax Overflow\n");
-		return 0;
-	}
-
-#if 0
-	PrintTerm();
-	Serial.print(iPulse,DEC);
-	PrintChar('*');
-	Serial.print(iEnd,DEC);
-	PrintChar('*');
-	Serial.print(What,DEC);
-	PrintTerm();
-#endif
-#if 0
-	return iEnd;
-#endif
-#if 0
-	for (int j=3;j<15 && ((iPulse + j) < (RAW_BUFFER_PULSELEN_SIZE - 2));j++){
-				RawSignal[iPulse + j] = RawSignal[iPulse + 2];
-	}
-#endif
-#if 0
-	return iEnd;
-#endif
-	while ((i < iEnd) && (iEnd < (RAW_BUFFER_PULSELEN_SIZE - 2))) {
-		unsigned int Min=RawSignal[iPulse + i + 1];
-		unsigned int Max=RawSignal[iPulse + i + 0]; //RKR
-
-#ifdef RKRMINMAX_VERBOSE
-		//PrintChar(' ');
-		PrintTerm();
-		Serial.print(i,DEC);
-		PrintChar(':');
-		Serial.print(iEnd,DEC);
-		PrintChar(':');
-		Serial.print(Max,DEC);
-		PrintChar('-');
-		Serial.print(Min,DEC);
-		for(int j = 0; j <= iEnd; j++) {
-			PrintChar('#');
-			Serial.print(RawSignal[iPulse+j],DEC);
-		}
-#endif
-#if 1
-		if (i > 16) {
-			return iEnd;
-		}
-#endif
-		if ((Min > Max) && ((Min-Max) > 200)) {
-			unsigned int Median=Max + (((Min-Max) > 400) ? 200 : ((Min-Max)/2)); // currently inverted min/max
-			int x = 5 + RawIndexStart;
-			int xEnd = RawSignal[RawIndexStart] + RawIndexStart;
-
-#ifdef RKRMINMAX_VERBOSE
-			PrintChar('-');
-			Serial.print(Median,DEC);
-#endif
-#if 1
-			if (i > 12 || (xEnd >= RAW_BUFFER_SIZE+2)) {
-				break;
-			}
-#endif
-		//	unsigned int MinCount =0;
-		//	unsigned int MaxCount =0;
-
-			// Kleinste, groter dan mid
-			// Grootste, kleinder dan mid
-			// diff > x?
-			// dan replace by median
-			// zoek de kortste tijd (PULSE en SPACE)
-			// 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
-			// RKR try 3 instead of 5 for starters
-			for (x = 3 + RawIndexStart; x <= xEnd-4; x+=2) {
-#if 1
-				unsigned int value = ((What == 0) ? RawSignal[x] // pulse
-									   : ((What == 1) ? RawSignal[x + 1] //space
-													:  (RawSignal[x] + RawSignal[x + 1]))); // pulse + space
-#else
-				unsigned int value;
-				switch (What) {
-				case 0:
-					value = RawSignal[x]; // pulse
-					break;
-				case 1:
-					value = RawSignal[x+1]; // pulse
-					break;
-				default:
-					value =  RawSignal[x] + RawSignal[x + 1]; // pulse + space
-					break;
-				}
-#endif
-				if (value < Min && value >= Median) {
-					Min=value; // Zoek naar de kortste pulstijd.
-				}
-				if (value > Max  && value <= Median) {
-					Max=value; // Zoek naar de langste pulstijd.
-				}
-			}
-#ifdef RKRMINMAX_VERBOSE
-			PrintChar('!');
-			Serial.print(Max,DEC);
-			PrintChar('-');
-			Serial.print(Min,DEC);
-#endif
-			// at least one new value found: extend with 2
-			if (/* (Min != Max) && */ !((Min==RawSignal[iPulse + i + 1]) && (Max==RawSignal[iPulse + i + 0]))) {
-				//return iEnd;
-				// extend array with 2
-				iEnd += 2;
-				RawSignal[iPulse] = iEnd;
-				for (int j = iEnd; j > i+2; j--) {
-					RawSignal[iPulse + j] = RawSignal[iPulse + j - 2];
-				}
-				RawSignal[iPulse + i + 1] = Max;
-				RawSignal[iPulse + i + 2] = Min;
-			}
-			else {
-				i++;
-			}
-		}
-		else {
-			i++;
-		}
-#if 0
-		return iEnd;
-#endif
-	}
-#if 0
-	PrintTerm();
-	Serial.print(iPulse,DEC);
-	PrintChar('*');
-	Serial.print(iEnd,DEC);
-#else
-	//PrintChar(' ');
-#ifdef RKRMINMAX_VERBOSE
-	PrintTerm();
-#else
-	PrintChar(' ');
-#endif
-	PrintChar('[');
-	for(int j = 1; j <= iEnd; j++) {
-		if (j > 1) {
-			if (j%2==0) {
-				PrintChar('-');
-			}
-			else {
-				PrintChar('/');
-			}
-
-		}
-		Serial.print(RawSignal[iPulse+j],DEC);
-	}
-	PrintChar(']');
-#ifdef RKRMINMAX_VERBOSE
-	PrintTerm();
-#endif
-#endif
-
-	return iEnd;
-}
-
-
-
 
  /**********************************************************************************************\
  * Deze functie genereert uit een willekeurig gevulde RawSignal afkomstig van de meeste
@@ -316,7 +85,7 @@ int RkrMinMax(int RawIndexStart, int iPulse, int What) {
  * meegenomen zodat deze functie geschikt is voor PWM, PDM en Bi-Pase modulatie.
  * LET OP: Het betreft een unieke hash-waarde zonder betekenis van waarde.
  \*********************************************************************************************/
-unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint) {
+ulong RawSignal_2_32bit(uint RawIndexStart, bool fPrint) {
 	int x,y,z;
 	int Counter_pulse=0,Counter_space=0;
 	int MinPulse=0xffff;
@@ -327,8 +96,8 @@ unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint) {
 	int MaxPulseSpace=0x0;//RKR
 	int MinPulseP;
 	int MinSpaceP;
-	unsigned long CodeP=0L;
-	unsigned long CodeS=0L;
+	ulong CodeP=0L;
+	ulong CodeS=0L;
 	int xEnd = RawSignal[RawIndexStart] + RawIndexStart;
 
 	// Kleinste, groter dan mid
@@ -418,7 +187,7 @@ unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint) {
 	while (x<xEnd);
 
 	if (fPrint) {
-		int iPulse = RAW_BUFFER_PULSELEN_START;
+		int iTimeRange = RAW_BUFFER_TIMERANGE_START;
 
 		Serial.print(" RAW P ");
 		Serial.print(RawSignal[RawIndexStart+1],DEC); // start pulse/preamble
@@ -427,11 +196,11 @@ unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint) {
 
 		//if (MaxPulse-MinPulseP > 100) {
 		//	PrintDash();
-		//	Serial.print(RkrMinMax(RawIndexStart, MinPulseP + (MaxPulse-MinPulseP)/2, 1) ,DEC);
+		//	Serial.print(RkrTimeRange(RawIndexStart, MinPulseP + (MaxPulse-MinPulseP)/2, 1) ,DEC);
 		//}
 		PrintComma();
 		//if (MaxPulse-MinPulseP > 100) {
-		//	Serial.print(RkrMinMax(RawIndexStart, MinPulseP + (MaxPulse-MinPulseP)/2, 0) ,DEC);
+		//	Serial.print(RkrTimeRange(RawIndexStart, MinPulseP + (MaxPulse-MinPulseP)/2, 0) ,DEC);
 		//	PrintDash();
 		//}
 		Serial.print(MaxPulse,DEC);
@@ -442,13 +211,13 @@ unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint) {
 		PrintComma();
 		PrintValue(CodeP);
 #if 1
-		RawSignal[iPulse] = 2;
-		RawSignal[iPulse+1] = MinPulseP;
-		RawSignal[iPulse+2] = MaxPulse;
-		RkrMinMax(RawIndexStart, iPulse, 0); // Pulse
+		RawSignal[iTimeRange] = 2;
+		RawSignal[iTimeRange+1] = MinPulseP;
+		RawSignal[iTimeRange+2] = MaxPulse;
+		RkrTimeRange(RawIndexStart, iTimeRange, 0); // Pulse
 #else
 		PrintComma();
-		Serial.print(iPulse,DEC);
+		Serial.print(iTimeRange,DEC);
 #endif
 		Serial.print(", RAW S ");
 		Serial.print(RawSignal[RawIndexStart+2],DEC); // start space/preamble
@@ -456,11 +225,11 @@ unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint) {
 		Serial.print(MinSpaceP,DEC);
 		//if (MaxSpace-MinSpaceP > 100) {
 		//	PrintDash();
-		//	Serial.print(RkrMinMax(RawIndexStart, MinSpaceP + (MaxSpace-MinSpaceP)/2, 3) ,DEC);
+		//	Serial.print(RkrTimeRange(RawIndexStart, MinSpaceP + (MaxSpace-MinSpaceP)/2, 3) ,DEC);
 		//}
 		PrintComma();
 		//if (MaxSpace-MinSpaceP > 100) {
-		//	Serial.print(RkrMinMax(RawIndexStart, MinSpaceP + (MaxSpace-MinSpaceP)/2, 2) ,DEC);
+		//	Serial.print(RkrTimeRange(RawIndexStart, MinSpaceP + (MaxSpace-MinSpaceP)/2, 2) ,DEC);
 		//	PrintDash();
 		//}
 		Serial.print(MaxSpace,DEC);
@@ -471,14 +240,14 @@ unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint) {
 		PrintComma();
 		PrintValue(CodeS);
 #if 1
-		iPulse += RawSignal[iPulse] + 1;
-		RawSignal[iPulse] = 2;
-		RawSignal[iPulse+1] = MinSpaceP;
-		RawSignal[iPulse+2] = MaxSpace;
-		RkrMinMax(RawIndexStart, iPulse, 1); // Space
+		iTimeRange += RawSignal[iTimeRange] + 1;
+		RawSignal[iTimeRange] = 2;
+		RawSignal[iTimeRange+1] = MinSpaceP;
+		RawSignal[iTimeRange+2] = MaxSpace;
+		RkrTimeRange(RawIndexStart, iTimeRange, 1); // Space
 #else
 		PrintComma();
-		Serial.print(iPulse,DEC);
+		Serial.print(iTimeRange,DEC);
 #endif
 		Serial.print(", RAW PS ");
 
@@ -487,11 +256,11 @@ unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint) {
 		Serial.print(MinPulseSpace,DEC);
 		//if (MaxPulseSpace-MinPulseSpace > 100) {
 		//	PrintDash();
-		//	Serial.print(RkrMinMax(RawIndexStart, MinPulseSpace + (MaxPulseSpace-MinPulseSpace)/2, 5) ,DEC);
+		//	Serial.print(RkrTimeRange(RawIndexStart, MinPulseSpace + (MaxPulseSpace-MinPulseSpace)/2, 5) ,DEC);
 		//}
 		PrintComma();
 		//if (MaxPulseSpace-MinPulseSpace > 100) {
-		//	Serial.print(RkrMinMax(RawIndexStart, MinPulseSpace + (MaxPulseSpace-MinPulseSpace)/2, 4) ,DEC);
+		//	Serial.print(RkrTimeRange(RawIndexStart, MinPulseSpace + (MaxPulseSpace-MinPulseSpace)/2, 4) ,DEC);
 		//	PrintDash();
 		//}
 		Serial.print(MaxPulseSpace,DEC);
@@ -502,14 +271,14 @@ unsigned long RawSignal_2_32bit(int RawIndexStart, bool fPrint) {
 		PrintComma();
 		PrintValue(CodeS^CodeP);
 #if 1
-		iPulse += RawSignal[iPulse] + 1;
-		RawSignal[iPulse] = 2;
-		RawSignal[iPulse+1] = MinPulseSpace;
-		RawSignal[iPulse+2] = MaxPulseSpace;
-		RkrMinMax(RawIndexStart, iPulse, 2); // Pulse + Space
+		iTimeRange += RawSignal[iTimeRange] + 1;
+		RawSignal[iTimeRange] = 2;
+		RawSignal[iTimeRange+1] = MinPulseSpace;
+		RawSignal[iTimeRange+2] = MaxPulseSpace;
+		RkrTimeRange(RawIndexStart, iTimeRange, 2); // Pulse + Space
 #else
 		PrintComma();
-		Serial.print(iPulse,DEC);
+		Serial.print(iTimeRange,DEC);
 #endif
 	}
 
@@ -532,7 +301,7 @@ static uint8_t enabled = 0;
 static void IR38Khz_set()
   {
   uint8_t pre, top;
-  unsigned long period=208; // IR_TransmitCarrier=26 want pulsen van de IR-led op een draaggolf van 38Khz. (1000000/38000=26uSec.) Vervolgens period=IR_TransmitCarrier*clockCyclesPerMicrosecond())/2;  // period =208 bij 38Khz
+  ulong period=208; // IR_TransmitCarrier=26 want pulsen van de IR-led op een draaggolf van 38Khz. (1000000/38000=26uSec.) Vervolgens period=IR_TransmitCarrier*clockCyclesPerMicrosecond())/2;  // period =208 bij 38Khz
   pre=1;
   top=period-1;
   TCCR2B=0;
@@ -553,7 +322,7 @@ static void IR38Khz_set()
 
 void WaitFreeRF(int Delay, int Window)
   {
-  unsigned long Timer, TimeOutTimer;
+  ulong Timer, TimeOutTimer;
 
   // WaitFreeRF is zinloos in de simulatie mode
   if(Simulate)return;
@@ -641,7 +410,7 @@ void RawSendIR(void)
  * RawSignal.Bits het aantal pulsen*2+startbit*2 ==> 66
  *
  \*********************************************************************************************/
-void Nodo_2_RawSignal(unsigned long Code)
+void Nodo_2_RawSignal(ulong Code)
   {
   byte BitCounter,y=1;
 
@@ -666,13 +435,13 @@ void Nodo_2_RawSignal(unsigned long Code)
  * Wacht totdat de pin verandert naar status state. Geeft de tijd in uSec. terug.
  * Als geen verandering, dan wordt na timeout teruggekeerd met de waarde 0L
  \*********************************************************************************************/
-unsigned long WaitForChangeState(uint8_t pin, uint8_t state, unsigned long timeout)
+ulong WaitForChangeState(uint8_t pin, uint8_t state, ulong timeout)
 	{
         uint8_t bit = digitalPinToBitMask(pin);
         uint8_t port = digitalPinToPort(pin);
 	uint8_t stateMask = (state ? bit : 0);
-	unsigned long numloops = 0; // keep initialization out of time critical area
-	unsigned long maxloops = microsecondsToClockCycles(timeout) / 19;
+	ulong numloops = 0; // keep initialization out of time critical area
+	ulong maxloops = microsecondsToClockCycles(timeout) / 19;
 
 	// wait for the pulse to stop. One loop takes 19 clock-cycles
 	while((*portInputRegister(port) & bit) == stateMask)
@@ -688,12 +457,12 @@ unsigned long WaitForChangeState(uint8_t pin, uint8_t state, unsigned long timeo
  * bij de TSOP1738 is in rust is de uitgang hoog. StateSignal moet LOW zijn
  * bij de 433RX is in rust is de uitgang laag. StateSignal moet HIGH zijn
  *
- * RKR: Added int RawIndexStart: receive repeated signals in one go
+ * RKR: Added uint RawIndexStart: receive repeated signals in one go
  \*********************************************************************************************/
 
-int FetchSignal(byte DataPin, boolean StateSignal, int TimeOut, int RawIndexStart) {
+int FetchSignal(byte DataPin, boolean StateSignal, int TimeOut, uint RawIndexStart) {
 	int RawCodeLength=RawIndexStart+1;
-	unsigned long PulseLength;
+	ulong PulseLength;
 	if (RawCodeLength>=RAW_BUFFER_SIZE-4) {
 		return 0;
 	}
@@ -742,7 +511,7 @@ int FetchSignal(byte DataPin, boolean StateSignal, int TimeOut, int RawIndexStar
 \*********************************************************************************************/
 void CopySignalIR2RF(byte Window)
   {
-  unsigned long Timer=millis()+((unsigned long)Window)*1000; // reset de timer.
+  ulong Timer=millis()+((ulong)Window)*1000; // reset de timer.
 
   digitalWrite(RF_ReceivePowerPin,LOW);   // Spanning naar de RF ontvanger uit om interferentie met de zender te voorkomen.
   digitalWrite(RF_TransmitPowerPin,HIGH); // zet de 433Mhz zender aan
@@ -762,8 +531,8 @@ void CopySignalIR2RF(byte Window)
 #define MAXPULSETIME 50 // maximale zendtijd van de IR-LED in mSec. Ter voorkoming van overbelasting
 void CopySignalRF2IR(byte Window)
   {
-  unsigned long Timer=millis()+((unsigned long)Window)*1000; // reset de timer.
-  unsigned long PulseTimer;
+  ulong Timer=millis()+((ulong)Window)*1000; // reset de timer.
+  ulong PulseTimer;
 
   while(Timer>millis())// voor de duur van het opgegeven tijdframe
     {
@@ -792,7 +561,7 @@ void CopySignalRF2IR(byte Window)
 * verzonden.
 \**********************************************************************************************/
 
-boolean TransmitCode(unsigned long Event,byte SignalType)
+boolean TransmitCode(ulong Event,byte SignalType)
   {
 
   if(SignalType!=SIGNAL_TYPE_UNKNOWN)
