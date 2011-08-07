@@ -86,27 +86,27 @@ void PrintDash(void)
 #define RKRRANGEANALYSE_VERBOSE
 
 void PrintNumHex(uint x, char c, uint digits) {
-     // Rinie add space for small digits
-     if(c) {
-			PrintChar(c);
- 	}
+	// Rinie add space for small digits
+	if(c) {
+		PrintChar(c);
+	}
 	for (uint i=0, val=1; i < digits; i++, val *= 16) {
 		if (x < val) {
 			PrintChar('0');
 		}
 	}
 
-    Serial.print(x,HEX);
+	Serial.print(x,HEX);
 }
 
 #undef RKRDOUBLE_SHORT
-
-void RkrPreAmbleAnalyse(uint RawIndexStart) {
+// todo: add byte/nibble length, stopBit
+void RkrPreAmbleAnalyse(uint RawIndexStart, boolean fBitWise, boolean fSkipOdd) {
 	uint iTimeRangePulse = RAW_BUFFER_TIMERANGE_START;
 	uint iTimeSplit = RawSignal[iTimeRangePulse + 2]; //max Short
 	uint xEnd = RawSignal[RawIndexStart] + RawIndexStart;
-	boolean fLongPreamble = RawSignal[RawIndexStart + 3] > iTimeSplit;
-	boolean fPrevLong;
+	boolean isLongPreamble = RawSignal[RawIndexStart + 3] > iTimeSplit;
+	boolean isLongPrev;
 	uint iPreamble = 0;
 	uint iBits = 0;
 	byte	byteValLSB= 0;
@@ -115,9 +115,10 @@ void RkrPreAmbleAnalyse(uint RawIndexStart) {
 	uint x;
 
 	// 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
+	// preamble: long until short or short until long...
 	for (x = 4 + RawIndexStart; x <= xEnd-1; x++) {
-		boolean fLong = RawSignal[x] > iTimeSplit;
-		if (fLongPreamble != fLong) {
+		boolean isLong = RawSignal[x] > iTimeSplit;
+		if (isLongPreamble != isLong) {
 			break;
 		}
 		iPreamble++;
@@ -125,75 +126,37 @@ void RkrPreAmbleAnalyse(uint RawIndexStart) {
 
 	x++;
 	Serial.print("PreAmble ");
-	Serial.print((fLongPreamble) ? "Long ": "Short ");
+	Serial.print((isLongPreamble) ? "Long ": "Short ");
 	PrintNum(iPreamble, 0, 1);
+	PrintNum(RawSignal[RawIndexStart] - iPreamble, ' ', 1);
 
-	prevBit = (fLongPreamble) ? 0: 1;
-	fPrevLong = !fLongPreamble;
+	prevBit = (isLongPreamble) ? 0: 1;
+	isLongPrev = !isLongPreamble;
 
+	// assume rest is manchester encoded
 	for (;x <= xEnd-1; x++) {
-		boolean fLong = RawSignal[x] > iTimeSplit;
-		if (!fLong && !fPrevLong) { // double short
-			prevBit ^= 0;
-			byteValLSB = (byteValLSB << 1) | prevBit;
+		boolean isLong = RawSignal[x] > iTimeSplit;
+		if ((!isLong && !isLongPrev) || isLong) {  // double short or long
+			prevBit ^= (isLong) ? 1 : 0;
+			if ((!fSkipOdd) || ((iBits%2) == 0)) {
+				byteValLSB = (byteValLSB << 1) | prevBit;
+				if (fBitWise) {
+					PrintNumHex(prevBit, (iBits == 0) ? ' ' : 0, 0);
+				}
+			}
 			iBits++;
+			if ((!fSkipOdd && (iBits >=8)) || (iBits >= 16)) {
+				iBits = 0;
+				if (!fBitWise) {
+					PrintNumHex(byteValLSB, ' ', 1);
+				}
+				//PrintChar('/');
+				//Serial.print(byteValMSB,HEX);
+				byteValLSB = 0;
+				//byteValMSB = 0;
+			}
 		}
-		if (fLong) {
-			prevBit ^= 1;
-			byteValLSB = (byteValLSB << 1) | prevBit;
-			iBits++;
-		}
-		if (iBits >=8) {
-			iBits = 0;
-			PrintNumHex(byteValLSB, ' ', 1);
-			//PrintChar('/');
-			//Serial.print(byteValMSB,HEX);
-			byteValLSB = 0;
-			//byteValMSB = 0;
-		}
-		fPrevLong = fLong;
-	}
-	PrintTerm();
-}
-
-void RkrPreAmbleAnalyseBit(uint RawIndexStart) {
-	uint iTimeRangePulse = RAW_BUFFER_TIMERANGE_START;
-	uint iTimeSplit = RawSignal[iTimeRangePulse + 2]; //max Short
-	uint xEnd = RawSignal[RawIndexStart] + RawIndexStart;
-	boolean fLongPreamble = RawSignal[RawIndexStart + 3] > iTimeSplit;
-	uint iPreamble = 0;
-	uint iBits = 0;
-	uint x;
-
-	// 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
-	for (x = 4 + RawIndexStart; x <= xEnd-1; x++) {
-		boolean fLong = RawSignal[x] > iTimeSplit;
-		if (fLongPreamble != fLong) {
-			break;
-		}
-		iPreamble++;
- 	}
-
-	x++;
-	Serial.print("PreAmble ");
-	PrintNum(iPreamble, 0, 1);
-	PrintChar(' ');
-
-	for (;x <= xEnd-1; x++) {
-		boolean fLong = RawSignal[x] > iTimeSplit;
-		byte bit = (fLong) ? 1 : 0;
-	    Serial.print(bit,HEX);
-		iBits++;
-		if (iBits >=8) {
-			iBits = 0;
-			PrintChar(' ');
-		}
-#ifdef RKRDOUBLE_SHORT
-		// double short
-		if (!fLong && RawSignal[x+1] <= iTimeSplit) {
-			x++;
-		}
-#endif
+		isLongPrev = isLong;
 	}
 	PrintTerm();
 }
@@ -201,29 +164,22 @@ void RkrPreAmbleAnalyseBit(uint RawIndexStart) {
 // 938-952/2043-2053
 void RkrSyncPulseSpaceAnalyse(uint RawIndexStart) {
 	uint iTimeRangePulse = RAW_BUFFER_TIMERANGE_START;
-	uint iTimeSplit = 1500;
+	uint iTimeSplit = 1500; // todo determine from TimeRange analyses
 	uint xEnd = RawSignal[RawIndexStart] + RawIndexStart;
-	boolean fLongPreamble = RawSignal[RawIndexStart + 3] > iTimeSplit;
-	uint iPreamble = 0;
 	uint iBits = 0;
-	byte	byteValLSB= 0;
-	//uint	byteValMSB= 0;
+	byte byteValLSB= 0;
 	uint x;
 
 	Serial.print("SyncPS ");
 	// 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
 	for (x = 3 + RawIndexStart; x <= xEnd-1; x+=2) {
-		boolean fLong = (RawSignal[x] + RawSignal[x + 1]) > iTimeSplit;
-		byteValLSB = (byteValLSB << 1) | ((fLong) ? 0x01 : 0);
-		//byteValMSB = (byteValMSB >> 1) | ((fLong) ? 0x80 : 0);
+		boolean isLong = (RawSignal[x] + RawSignal[x + 1]) > iTimeSplit;
+		byteValLSB = (byteValLSB << 1) | ((isLong) ? 0x01 : 0);
 		iBits++;
 		if (iBits >=8) {
 			iBits = 0;
 			PrintNumHex(byteValLSB, ' ', 2);
-			//PrintChar('/');
-			//Serial.print(byteValMSB,HEX);
 			byteValLSB = 0;
-			//byteValMSB = 0;
 		}
 	}
 	PrintTerm();
@@ -251,7 +207,7 @@ byte RkrTimeRangeAnalyse(uint RawIndexStart) {
 		for (uint iSpace = iTimeRangeSpace + 1; iSpace <= iTimeRangeSpace + RawSignal[iTimeRangeSpace]; iSpace += 2) {
 			int MinSpace = RawSignal[iSpace];
 			int MaxSpace = RawSignal[iSpace + 1];
-#if 1
+#if 0
 			PrintNum(MinSpace, ',', 1);
 			PrintNum(abs((MinPulse - MinSpace)), ',', 1);
 			PrintNum(abs((MaxPulse - MaxSpace)), ',', 1);
@@ -642,9 +598,11 @@ void PrintRawSignal(uint RawIndexStart) {
 		PrintTerm();
 	}
 #if 1 // Preamble experiment
-	if (RawSignal[RawIndexStart] == 232) { // a weather station
-		RkrPreAmbleAnalyse(RawIndexStart);
-		RkrPreAmbleAnalyseBit(RawIndexStart);
+	if (RawSignal[RawIndexStart] >= 232 && RawSignal[RawIndexStart] <= 236) { // a weather station?
+		RkrPreAmbleAnalyse(RawIndexStart, false, false);
+		RkrPreAmbleAnalyse(RawIndexStart, true, false);
+		RkrPreAmbleAnalyse(RawIndexStart, false, true);
+		RkrPreAmbleAnalyse(RawIndexStart, true, true);
 	}
 	if (RawSignal[RawIndexStart] == 44) { // x10 like
 		RkrSyncPulseSpaceAnalyse(RawIndexStart); // seems ok
