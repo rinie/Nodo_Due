@@ -48,7 +48,7 @@
 #define KAKU_CodeLength    12  // aantal data bits
 #define KAKU_T            350  // us
 
-void KAKU_2_RawSignal(unsigned long Code)
+void KAKU_2_RawSignal(ulong Code)
   {
   byte Home, Unit, Level, Command;
   boolean Group;
@@ -96,37 +96,50 @@ void KAKU_2_RawSignal(unsigned long Code)
 * Deze routine berekent de uit een RawSignal een CMD_KAKU
 * Geeft een false retour als geen geldig KAKU commando uit het signaal te destilleren
 \*********************************************************************************************/
-unsigned long RawSignal_2_KAKU(int RawIndexStart)
-  {
-  byte Home, Unit, Level, Command=VALUE_OFF;
-  int i,j;
-  boolean Group=false;
-  unsigned long bitstream=0;
+ulong RawSignal_2_KAKU(uint RawIndexStart) {
+	byte Home, Unit, Level, Command=VALUE_OFF;
+	int i;
+	boolean Group=false;
+	ulong bitstream=0;
 
-  // conventionele KAKU bestaat altijd uit 12 data bits plus stop. Ongelijk, dan geen KAKU
-  if (RawSignal[RawIndexStart]!=(KAKU_CodeLength*4)+2)return false;
+	// conventionele KAKU bestaat altijd uit 12 data bits plus stop. Ongelijk, dan geen KAKU
+	if (RawSignal[RawIndexStart] != (KAKU_CodeLength*4)+2) {
+			return 0;
+	}
+	for (i=0; i<KAKU_CodeLength; i++) {
+		uint *Signal= RawSignal+4*i+1 + RawIndexStart;
+    	const uint splitTMax = KAKU_T*2;
+    	const uint split3TMin = KAKU_T*2;
+    	// all signals start with T,3T
+    	if (!(Signal[0] < splitTMax && Signal[1] > split3TMin)) {
+				return 0; // no KAKU
+		}
+			// 0 = T,3T then T,3T
+		if (Signal[2] < splitTMax && Signal[3] > split3TMin) {
+			bitstream=(bitstream >> 1); // 0
+		} // , 1 = T,3T then 3T,T:
+		else if (Signal[2] > split3TMin && Signal[3] < splitTMax) {
+			bitstream=(bitstream >> 1 | (1 << (KAKU_CodeLength-1)));  // 1
+		}	// short 0 = T,3T then T,T:
+		else if (Signal[2] < splitTMax && Signal[3] < splitTMax) {
+			bitstream=(bitstream >> 1); Command= KAKU_ALLOFF; // Short 0, Groep commando. Zet bit-2 van Par2.
+		}
+		else {
+				return 0; // foutief signaal
+		}
+	}
 
-  for (i=0; i<KAKU_CodeLength; i++)
-    {
-    j=KAKU_T*2;
-    if (RawSignal[4*i+1 + RawIndexStart]<j && RawSignal[4*i+2 + RawIndexStart]>j && RawSignal[4*i+3 + RawIndexStart]<j && RawSignal[4*i+4 + RawIndexStart]>j)
-    	{bitstream=(bitstream >> 1);} // 0
-    else if (RawSignal[4*i+1 + RawIndexStart]<j && RawSignal[4*i+2 + RawIndexStart]>j && RawSignal[4*i+3 + RawIndexStart]>j && RawSignal[4*i+4 + RawIndexStart]<j)
-    	{bitstream=(bitstream >> 1 | (1 << (KAKU_CodeLength-1))); } // 1
-    else if (RawSignal[4*i+1 + RawIndexStart]<j && RawSignal[4*i+2 + RawIndexStart]>j && RawSignal[4*i+3 + RawIndexStart]<j && RawSignal[4*i+4 + RawIndexStart]<j)
-    	{bitstream=(bitstream >> 1); Command= KAKU_ALLOFF;} // Short 0, Groep commando. Zet bit-2 van Par2.
-    else
-    	{return false;} // foutief signaal
-    }
 
-  if ((bitstream&0x600)!=0x600)return false; // twee vaste bits van KAKU gebruiken als checksum
+	if ((bitstream&0x600)!=0x600) {
+		return 0; // twee vaste bits van KAKU gebruiken als checksum
+	}
 
-  Home =     (bitstream      ) & 0x0F;
-  Unit =     (bitstream >>  4) & 0x0F;
-  Command |= (bitstream >> 11) & 0x01;
+	Home =     (bitstream      ) & 0x0F;
+	Unit =     (bitstream >>  4) & 0x0F;
+	Command |= (bitstream >> 11) & 0x01;
 
-  return SetEventType(command2event(CMD_KAKU, (Home << 4 | Unit), Command),SIGNAL_TYPE_KAKU); // hoogte nible wissen en weer vullen met type NewKAKU
-  }
+	return SetEventType(command2event(CMD_KAKU, (Home << 4 | Unit), Command),SIGNAL_TYPE_KAKU); // hoogte nible wissen en weer vullen met type NewKAKU
+}
 
 
 /*********************************************************************************************\
@@ -159,9 +172,9 @@ unsigned long RawSignal_2_KAKU(int RawIndexStart)
 /*********************************************************************************************\
 * Deze routine berekent de RAW pulsen uit een CMD_NEWKAKU plaatst deze in de buffer RawSignal
 \*********************************************************************************************/
-void NewKAKU_2_RawSignal(unsigned long CodeNodo)
+void NewKAKU_2_RawSignal(ulong CodeNodo)
   {
-  unsigned long bitstream=0L;
+  ulong bitstream=0L;
   byte Bit, Level, i=1;
   byte x; /// aantal posities voor pulsen/spaces in RawSignal
   byte y;
@@ -205,7 +218,7 @@ void NewKAKU_2_RawSignal(unsigned long CodeNodo)
         RawSignal[i+3]=NewKAKU_1T;  // moet een T,T,T,T zijn bij een dim commando.
       if(i==127)  // als alle pulsen van de 32-bits weggeschreven zijn
         {
-        bitstream=(unsigned long)Level; //  nog vier extra dim-bits om te verzenden
+        bitstream=(ulong)Level; //  nog vier extra dim-bits om te verzenden
         y=3;
         }
       }
@@ -216,59 +229,70 @@ void NewKAKU_2_RawSignal(unsigned long CodeNodo)
   RawSignal[0]=i; // aantal bits*2 die zich in het opgebouwde RawSignal bevinden
   }
 
-
 /*********************************************************************************************\
 * Deze routine berekent de uit een RawSignal een CMD_NEWKAKU
 * Geeft een false retour als geen geldig KAKU commando uit het signaal te destilleren
 \*********************************************************************************************/
-unsigned long RawSignal_2_NewKAKU(int RawIndexStart)
-  {
-  unsigned long bitstream=0L;
-  boolean Bit;
-  int Level=0,i;
-  int iEnd = RawSignal[RawIndexStart];
-  // nieuwe KAKU bestaat altijd uit start bit + 32 bits + evt 4 dim bits. Ongelijk, dan geen NewKAKU
-  if (RawSignal[RawIndexStart]!=NewKAKU_RawSignalLength && (RawSignal[RawIndexStart]!=NewKAKUdim_RawSignalLength))return 0L;
+ulong RawSignal_2_NewKAKU(uint RawIndexStart) {
+	ulong bitstream=0L;
+	boolean Bit;
+	int Level=0;
+	int iEnd = RawSignal[RawIndexStart] - 2; //-2 omdat de space/pulse van de stopbit geen deel meer van signaal uit maakt.
+	int i=3; // RawSignal[3] is de eerste van een T,xT,T,xT combinatie
+	// nieuwe KAKU bestaat altijd uit start bit + 32 bits + evt 4 dim bits. Ongelijk, dan geen NewKAKU
+	if (RawSignal[RawIndexStart] != NewKAKU_RawSignalLength && (RawSignal[RawIndexStart] != NewKAKUdim_RawSignalLength)) {
+		return 0L;
+	}
 
   // RawSignal[0] bevat aantal pulsen * 2  => negeren
   // RawSignal[1] bevat startbit met tijdsduur van 1T => negeren
   // RawSignal[2] bevat lange space na startbit met tijdsduur van 8T => negeren
-  i=3; // RawSignal[3] is de eerste van een T,xT,T,xT combinatie
 
-  do
-    {
-    if     (RawSignal[i + RawIndexStart]<NewKAKU_mT && RawSignal[i+1 + RawIndexStart]<NewKAKU_mT && RawSignal[i+2 + RawIndexStart]<NewKAKU_mT && RawSignal[i+3 + RawIndexStart]>NewKAKU_mT)Bit=0; // T,T,T,4T
-    else if(RawSignal[i + RawIndexStart]<NewKAKU_mT && RawSignal[i+1 + RawIndexStart]>NewKAKU_mT && RawSignal[i+2 + RawIndexStart]<NewKAKU_mT && RawSignal[i+3 + RawIndexStart]<NewKAKU_mT)Bit=1; // T,4T,T,T
-    else if(RawSignal[i + RawIndexStart]<NewKAKU_mT && RawSignal[i+1 + RawIndexStart]<NewKAKU_mT && RawSignal[i+2 + RawIndexStart]<NewKAKU_mT && RawSignal[i+3 + RawIndexStart]<NewKAKU_mT)       // T,T,T,T Deze hoort te zitten op i=111 want: 27e NewKAKU bit maal 4 plus 2 posities voor startbit
-      {
-      if(RawSignal[RawIndexStart]!=NewKAKUdim_RawSignalLength) // als de dim-bits er niet zijn
-        return false;
-      }
-    else
-      return false; // andere mogelijkheden zijn niet geldig in NewKAKU signaal.
+#define NewKakuSplitTMax NewKAKU_mT
+#define NewKakuSplit4TMin NewKAKU_mT
 
-    if(i<130) // alle bits die tot de 32-bit pulstrein behoren 32bits * 4posities per bit + pulse/space voor startbit
-      bitstream=(bitstream<<1) | Bit;
-    else // de resterende vier bits die tot het dimlevel behoren
-      Level=(Level<<1) | Bit;
+  for (i = 3; i<iEnd; i+=4) {
+		uint *Signal= RawSignal+ i + RawIndexStart;
+		if (!(Signal[0]<NewKakuSplitTMax  && Signal[2]<NewKakuSplitTMax)) {
+			return 0; // 0 and 2 shoud be T
+		}
+		if (Signal[1] < NewKakuSplitTMax && Signal[3] > NewKakuSplit4TMin) { // T,T,T,4T
+			Bit=0;
+		}
+		else if(Signal[1] > NewKakuSplit4TMin && Signal[3] < NewKakuSplitTMax) {  // T,4T,T,T
+			Bit=1;
+		}
+		else if(Signal[1] < NewKakuSplitTMax && Signal[3] < NewKakuSplitTMax) {  // T,T,T,T Deze hoort te zitten op i=111 want: 27e NewKAKU bit maal 4 plus 2 posities voor startbit
+			if(RawSignal[RawIndexStart]!=NewKAKUdim_RawSignalLength) { // als de dim-bits er niet zijn
+				return 0;
+			}
+		}
+		else {
+			return 0; // andere mogelijkheden zijn niet geldig in NewKAKU signaal.
+		}
 
-    i+=4;// volgende pulsenquartet
-    }while(i<iEnd-2); //-2 omdat de space/pulse van de stopbit geen deel meer van signaal uit maakt.
+		if (i < 130) { // alle bits die tot de 32-bit pulstrein behoren 32bits * 4posities per bit + pulse/space voor startbit
+			bitstream = (bitstream << 1) | Bit;
+		}
+		else { // de resterende vier bits die tot het dimlevel behoren
+			Level = (Level << 1) | Bit;
+		}
+	}
 
-  if(bitstream>0x0ffff)
-    // het is van een NewKAKU zender afkomstig. Geef de hex-waarde terug.
-    return SetEventType(bitstream,SIGNAL_TYPE_NEWKAKU); // hoogte nible wissen en weer vullen met type NewKAKU
-  else
-    {
-    // het is van een andere Nodo afkomstig. Maak er een Nodo commando van.
-    if(i>140)
-      return command2event(CMD_KAKU_NEW, (bitstream>>6)&0xff,Level+1);
-    else
-      {
-      i=((bitstream>>4)&0x01)?VALUE_ON:VALUE_OFF;
-      return command2event(CMD_KAKU_NEW, (bitstream>>6)&0xff,i);
-      }
-    }
-  return bitstream;
-  }
+	if(bitstream > 0x0ffff) {
+		// het is van een NewKAKU zender afkomstig. Geef de hex-waarde terug.
+		return SetEventType(bitstream,SIGNAL_TYPE_NEWKAKU); // hoogte nible wissen en weer vullen met type NewKAKU
+	}
+	else {
+		// het is van een andere Nodo afkomstig. Maak er een Nodo commando van.
+		if(i>140) {
+			return command2event(CMD_KAKU_NEW, (bitstream>>6)&0xff,Level+1);
+		}
+		else {
+			i = ((bitstream >> 4) & 0x01) ? VALUE_ON : VALUE_OFF;
+			return command2event(CMD_KAKU_NEW, (bitstream>>6)&0xff,i);
+		}
+	}
+	return bitstream;
+}
 

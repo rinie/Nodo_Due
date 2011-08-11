@@ -33,11 +33,11 @@
                                   // Minor: Uitbreiding/aanpassing van commando's, functionaliteit en MMI aanpassingen
                                   // Patch: Herstel van bugs zonder (ingrijpende) functionele veranderingen.
 
-
 #include "pins_arduino.h"
 #include <EEPROM.h>
 #include <Wire.h>
 #include <avr/pgmspace.h>
+#include "Nodo_Due.h"
 
 /**************************************************************************************************************************\
 *  Nodo Event            = TTTTUUUUCCCCCCCC1111111122222222       -> T=Type, U=Unit, 1=Par-1, 2=Par-2
@@ -355,14 +355,8 @@ PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,31
 
 #define MIN_RAW_PULSES            16 // =8 bits. Minimaal aantal ontvangen bits*2 alvorens cpu tijd wordt besteed aan decodering, etc. Zet zo hoog mogelijk om CPU-tijd te sparen en minder 'onzin' te ontvangen.
 #define SHARP_TIME               500 // tijd in milliseconden dat de nodo gefocust moet blijven luisteren naar één dezelfde poort na binnenkomst van een signaal
-#define RAWSIGNAL_TOGGLE	// RKR instead of just one rawsignal, repeat until you send RawSignalGet; again...
-#define RAWSIGNAL_MULTI		// RKR Rawsignal can be multiple signals: <count> <timinig data> <count> <timing data> etc...
 //****************************************************************************************************************************************
-
-#undef USERVAR // RKR make optional to save space
-#undef WIRED // RKR make optional to save space
-
-struct Settings
+struct Settings
   {
   int     Version;
 #ifdef WIRED // RKR make optional to save space
@@ -388,28 +382,24 @@ struct Settings
 
 
 // Timers voor de gebruiker
-#undef USERTIMER
 #ifdef USERTIMER // RKR make optional to save space
 #define TIMER_MAX              15      // aantal beschikbare timers voor de user, gerekend vanaf 0 t/m 14
-unsigned long UserTimer[TIMER_MAX];
+ulong UserTimer[TIMER_MAX];
 #endif
 
 // timers voor verwerking op intervals
 #define Loop_INTERVAL_1          250  // tijdsinterval in ms. voor achtergrondtaken.
 #define Loop_INTERVAL_2         5000  // tijdsinterval in ms. voor achtergrondtaken.
-unsigned long StaySharpTimer=millis();
-unsigned long LoopIntervalTimer_1=millis();// millis() maakt dat de intervallen van 1 en 2 niet op zelfde moment vallen => 1 en 2 nu asynchroon
-unsigned long LoopIntervalTimer_2=0L;
-unsigned long RawStartSignalTime=millis(); // RKR measure time between signals
-unsigned long RawStartSignalTimeLast= 0; // RKR measure time between signals for filtered signals
-#define RAW_BUFFER_SIZE            472 // Maximaal aantal te ontvangen bits*2
-#define RAW_BUFFER_PULSELEN_SIZE	36 // RKR pulse length calculations
-#define RAW_BUFFER_PULSELEN_START	(RAW_BUFFER_SIZE + 4) // RKR borrow same array
-unsigned int RawSignal[RAW_BUFFER_SIZE+4 + RAW_BUFFER_PULSELEN_SIZE];          // Tabel met de gemeten pulsen in microseconden. eerste waarde is het aantal bits*2
+ulong StaySharpTimer=millis();
+ulong LoopIntervalTimer_1=millis();// millis() maakt dat de intervallen van 1 en 2 niet op zelfde moment vallen => 1 en 2 nu asynchroon
+ulong LoopIntervalTimer_2=0L;
+ulong RawStartSignalTime=millis(); // RKR measure time between signals
+ulong RawStartSignalTimeLast= 0; // RKR measure time between signals for filtered signals
+uint RawSignal[RAW_BUFFER_SIZE+4 + RAW_BUFFER_TIMERANGE_SIZE];          // Tabel met de gemeten pulsen in microseconden. eerste waarde is het aantal bits*2
 
 // definiëer een kleine queue voor events die voorbij komen tijdens een delay
 #define EVENT_QUEUE_MAX 15
-unsigned long QueueEvent[EVENT_QUEUE_MAX];
+ulong QueueEvent[EVENT_QUEUE_MAX];
 byte QueuePort[EVENT_QUEUE_MAX];
 byte QueuePos;
 
@@ -433,11 +423,11 @@ byte WiredCounter=0, VariableCounter;
 #endif
 byte EventlistDepth=0;                              // teller die bijhoudt hoe vaak er binnen een macro weer een macro wordt uitgevoerd. Voorkomt tevens vastlopers a.g.v. loops die door een gebruiker zijn gemaakt met macro's
 byte Hold=false;
-unsigned long Content=0L,ContentPrevious;
-unsigned long Checksum=0L;
-unsigned long SupressRepeatTimer;
-unsigned long HoldTimer;
-unsigned long EventTimeCodePrevious;                // t.b.v. voorkomen herhaald ontvangen van dezelfde code binnen ingestelde tijd
+ulong Content=0L,ContentPrevious;
+ulong Checksum=0L;
+ulong SupressRepeatTimer;
+ulong HoldTimer;
+ulong EventTimeCodePrevious;                // t.b.v. voorkomen herhaald ontvangen van dezelfde code binnen ingestelde tijd
 void(*Reset)(void)=0;                               //reset functie op adres 0
 uint8_t RFbit,RFport,IRbit,IRport;
 struct RealTimeClock {byte Hour,Minutes,Seconds,Date,Month,Day,Daylight; int Year,DaylightSaving;}Time;
@@ -600,7 +590,7 @@ void loop()
 		do// met StaySharp wordt focus gezet op luisteren naar RF, doordat andere input niet wordt opgepikt
 		  {
 		  while((*portInputRegister(RFport)&RFbit)==RFbit)// Kijk if er iets op de RF poort binnenkomt. (Pin=HOOG als signaal in de ether).
-			{unsigned long StartSignalTime = millis();
+			{ulong StartSignalTime = millis();
 			if(FetchSignal(RF_ReceiveDataPin,HIGH,SIGNAL_TIMEOUT_RF, RawSignalStart))// Als het een duidelijk RF signaal was
 			  {
 				  	if (RawSignalStart == 0) { //inter messages time

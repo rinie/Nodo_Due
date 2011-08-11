@@ -21,7 +21,7 @@
  /******************************welcome***************************************************************\
  * Print een event volgens formaat:  'EVENT/ACTION: <port>, <type>, <content>
  \*********************************************************************************************/
-void PrintEvent(unsigned long Content, byte Port, byte Direction)
+void PrintEvent(ulong Content, byte Port, byte Direction)
   {
   byte x,first=0;
 
@@ -133,136 +133,13 @@ void PrintRawSignal(void)
   PrintTerm();
   }
 #else
-void PrintComma(void)
-  {
-  Serial.print(", ");
-  }
-
-void PrintNum(unsigned int x, bool fPrintComma, unsigned int digits) {
-     // Rinie add space for small digits
-     if(fPrintComma) {
-     	PrintComma();
- 	}
-	for (unsigned int i=0, val=10; i < digits; i++, val *= 10) {
-		if (x < val) {
-			PrintChar(' ');
-		}
-	}
-
-    Serial.print(x,DEC);
-}
-
-void PrintRawSignal(int RawIndexStart) {
-	unsigned int x;
-	unsigned int i;
-	bool fPrintPulseAndSpace = true;
-	unsigned int  xEnd = RawSignal[RawIndexStart] + RawIndexStart;
-#ifdef RAW_BUFFER_PULSELEN_START
-	int iPulse = RAW_BUFFER_PULSELEN_START;
-	RawSignal[iPulse] = 0;
-#endif
-	//total time
-	if ((RawIndexStart > RAW_BUFFER_SIZE+2) || (xEnd > RAW_BUFFER_SIZE+2)) {
-		PrintNum(RawIndexStart,false, 3);
-		PrintNum(xEnd,true, 3);
-		Serial.print("PrintRawSignal Overflow\n");
-		return;
-	}
-	i = 0;
-	for(int x=1+RawIndexStart;x<=xEnd;x++) {
-		i += RawSignal[x];
-	}
-
-	if (i <= 0) {
-		return;
-	}
-	if (RawIndexStart <= 0) {
-		//PrintEventCode(AnalyzeRawSignal(0));
-		//PrintTerm();
-		  ClockRead();
-		PrintDateTime();
-		PrintTerm();
-		Serial.print("* ");
-		// inter message time
-		PrintNum(RawStartSignalTime - RawStartSignalTimeLast,false, 5);
-		RawStartSignalTimeLast = RawStartSignalTime;
-	}
-	else {
-		Serial.print("! ");
-		// intra message
-		PrintNum(RawSignal[xEnd+1],false, 5);
-	}
-//	PrintComma();
-	//total time
-	i = 0;
-	for(int x=1+RawIndexStart;x<=xEnd;x++) {
-		i += RawSignal[x];
-	}
-	PrintNum(i,true, 5);
-//	PrintComma();
-
-	// count
-	PrintNum(RawSignal[RawIndexStart],true, 2);
-//	PrintComma();
-
-	// net count min spikes
-	i = 0;
-	for(int x=1+RawIndexStart;x<=xEnd;x++) {
-		if (RawSignal[x] < 100) {
-			i++;
-		}
-	}
-
-	PrintNum(RawSignal[RawIndexStart]-i,true, 0);
-//	PrintComma();
-
-	PrintNum(i,true, 0);
-	PrintComma();
-
-	PrintEventCode(AnalyzeRawSignal(RawIndexStart));
-	// todo print min/max and minButOne/maxButOne
-	RawSignal_2_32bit(RawIndexStart, true);
-//	PrintTerm();
-	for (i=0; i < 2; i++) {
-		//  PrintText(Text_07,false);
-		for(int x=1+RawIndexStart;x<=xEnd;x++) {
-			if ((x - (1+RawIndexStart))%16==0) {
-					PrintTerm();
-					PrintNum(x - (1+RawIndexStart), false, 4);
-					PrintChar(':');
-					PrintNum(RawSignal[x], false, 4);
-			}
-			else {
-				PrintNum(RawSignal[x], true, 4);
-			}
-			if (fPrintPulseAndSpace) { // mark + space
-				if ((x - (1+RawIndexStart))%2==1) {
-					Serial.print(" [");
-					PrintNum(RawSignal[x] + RawSignal[x-1], false, 4);
-					PrintChar(']');
-				}
-			}
-
-		}
-		PrintTerm();
-		if (i == 0) {
-			if (RawSignal[iPulse] != 0) {
-				RkrMinMaxPsReplaceMedian(RawIndexStart);
-				Serial.print("!Rounded");
-			}
-			else {
-				i = 2;
-			}
-		}
-	}
-}
-
+// moved to OokTimeRange.pde
 #endif
  /*********************************************************************************************\
  * Print een decimaal getal
  * Serial.Print neemt veel progmem in beslag.
  \*********************************************************************************************/
-void PrintValue(unsigned long x)
+void PrintValue(ulong x)
   {
   if(x<=255)
     Serial.print(x,DEC);
@@ -303,7 +180,7 @@ void PrintChar(byte S)
 #define P_VALUE 3
 #define P_DIM   4
 
-void PrintEventCode(unsigned long Code)
+void PrintEventCode(ulong Code)
   {
   byte P1,P2,Par2_b;
   boolean P2Z=true;     // vlag: true=Par2 als nul waarde afdrukken false=nulwaarde weglaten
@@ -467,7 +344,7 @@ void PrintTerm()
  \*********************************************************************************************/
 void PrintEventlistEntry(int entry, byte d)
   {
-  unsigned long Event, Action;
+  ulong Event, Action;
 
   Eventlist_Read(entry,&Event,&Action); // leesregel uit de Eventlist.
 
