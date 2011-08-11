@@ -187,98 +187,49 @@ ulong RawSignal_2_32bit(uint RawIndexStart, bool fPrint) {
 	while (x<xEnd);
 
 	if (fPrint) {
-		int iTimeRange = RAW_BUFFER_TIMERANGE_START;
-
-		Serial.print(" RAW P ");
-		Serial.print(RawSignal[RawIndexStart+1],DEC); // start pulse/preamble
-		PrintComma();
-		Serial.print(MinPulseP,DEC);
-
-		//if (MaxPulse-MinPulseP > 100) {
-		//	PrintDash();
-		//	Serial.print(RkrTimeRange(RawIndexStart, MinPulseP + (MaxPulse-MinPulseP)/2, 1) ,DEC);
-		//}
-		PrintComma();
-		//if (MaxPulse-MinPulseP > 100) {
-		//	Serial.print(RkrTimeRange(RawIndexStart, MinPulseP + (MaxPulse-MinPulseP)/2, 0) ,DEC);
-		//	PrintDash();
-		//}
-		Serial.print(MaxPulse,DEC);
-		PrintComma();
-		Serial.print(MaxPulse-MinPulseP,DEC);
-		PrintComma();
-		Serial.print(Counter_pulse,DEC);
+		PrintTerm();
+		Serial.print("RAW P ");
+		PrintNum(RawSignal[RawIndexStart+1], ' ', 4); // start pulse/preamble
+		PrintNum(MinPulseP, ',', 4);
+		PrintNum(MaxPulse, ',', 4);
+		PrintNum(MaxPulse-MinPulseP, ',', 4);
+		PrintNum(Counter_pulse, ',', 4);
 		PrintComma();
 		PrintValue(CodeP);
 #if 1
-		RawSignal[iTimeRange] = 2;
-		RawSignal[iTimeRange+1] = MinPulseP;
-		RawSignal[iTimeRange+2] = MaxPulse;
-		RkrTimeRange(RawIndexStart, iTimeRange, 0); // Pulse
+		RkrTimeRange(MinPulseP, MaxPulse, ixPulse); // Pulse
 #else
-		PrintComma();
-		Serial.print(iTimeRange,DEC);
+		PrintNum(iTimeRange, ',', 4);
 #endif
-		Serial.print(", RAW S ");
-		Serial.print(RawSignal[RawIndexStart+2],DEC); // start space/preamble
-		PrintComma();
-		Serial.print(MinSpaceP,DEC);
-		//if (MaxSpace-MinSpaceP > 100) {
-		//	PrintDash();
-		//	Serial.print(RkrTimeRange(RawIndexStart, MinSpaceP + (MaxSpace-MinSpaceP)/2, 3) ,DEC);
-		//}
-		PrintComma();
-		//if (MaxSpace-MinSpaceP > 100) {
-		//	Serial.print(RkrTimeRange(RawIndexStart, MinSpaceP + (MaxSpace-MinSpaceP)/2, 2) ,DEC);
-		//	PrintDash();
-		//}
-		Serial.print(MaxSpace,DEC);
-		PrintComma();
-		Serial.print(MaxSpace-MinSpaceP,DEC);
-		PrintComma();
-		Serial.print(Counter_space,DEC);
+		PrintTerm();
+		Serial.print("RAW S ");
+		PrintNum(RawSignal[RawIndexStart+2], ' ', 4); // start space/preamble
+		PrintNum(MinSpaceP, ',', 4);
+		PrintNum(MaxSpace, ',', 4);
+		PrintNum(MaxSpace-MinSpaceP, ',', 4);
+		PrintNum(Counter_space, ',', 4);
 		PrintComma();
 		PrintValue(CodeS);
 #if 1
-		iTimeRange += RawSignal[iTimeRange] + 1;
-		RawSignal[iTimeRange] = 2;
-		RawSignal[iTimeRange+1] = MinSpaceP;
-		RawSignal[iTimeRange+2] = MaxSpace;
-		RkrTimeRange(RawIndexStart, iTimeRange, 1); // Space
+		RkrTimeRange(MinSpaceP, MaxSpace, ixSpace); // Space
 #else
 		PrintComma();
-		Serial.print(iTimeRange,DEC);
+		PrintNum(iTimeRange, ',', 4);
 #endif
-		Serial.print(", RAW PS ");
+		PrintTerm();
+		Serial.print("RAW PS");
 
-		Serial.print(RawSignal[RawIndexStart+1] + RawSignal[RawIndexStart+2],DEC); // start space/preamble
-		PrintComma();
-		Serial.print(MinPulseSpace,DEC);
-		//if (MaxPulseSpace-MinPulseSpace > 100) {
-		//	PrintDash();
-		//	Serial.print(RkrTimeRange(RawIndexStart, MinPulseSpace + (MaxPulseSpace-MinPulseSpace)/2, 5) ,DEC);
-		//}
-		PrintComma();
-		//if (MaxPulseSpace-MinPulseSpace > 100) {
-		//	Serial.print(RkrTimeRange(RawIndexStart, MinPulseSpace + (MaxPulseSpace-MinPulseSpace)/2, 4) ,DEC);
-		//	PrintDash();
-		//}
-		Serial.print(MaxPulseSpace,DEC);
-		PrintComma();
-		Serial.print(MaxPulseSpace-MinPulseSpace,DEC);
-		PrintComma();
-		Serial.print(Counter_pulse + Counter_space,DEC);
+		PrintNum(RawSignal[RawIndexStart+1] + RawSignal[RawIndexStart+2], ' ', 4); // start space/preamble
+		PrintNum(MinPulseSpace, ',', 4);
+		PrintNum(MaxPulseSpace, ',', 4);
+		PrintNum(MaxPulseSpace-MinPulseSpace, ',', 4);
+		PrintNum(Counter_pulse + Counter_space, ',', 4);
 		PrintComma();
 		PrintValue(CodeS^CodeP);
 #if 1
-		iTimeRange += RawSignal[iTimeRange] + 1;
-		RawSignal[iTimeRange] = 2;
-		RawSignal[iTimeRange+1] = MinPulseSpace;
-		RawSignal[iTimeRange+2] = MaxPulseSpace;
-		RkrTimeRange(RawIndexStart, iTimeRange, 2); // Pulse + Space
+		RkrTimeRange(MinPulseSpace, MaxPulseSpace, ixPulseSpace); // // Pulse + Space
 #else
-		PrintComma();
-		Serial.print(iTimeRange,DEC);
+		PrintNum(iTimeRange, ',', 4);
 #endif
 	}
 

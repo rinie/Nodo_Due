@@ -233,15 +233,16 @@ void NewKAKU_2_RawSignal(ulong CodeNodo)
 * Deze routine berekent de uit een RawSignal een CMD_NEWKAKU
 * Geeft een false retour als geen geldig KAKU commando uit het signaal te destilleren
 \*********************************************************************************************/
-ulong RawSignal_2_NewKAKU(uint RawIndexStart)
-  {
-  ulong bitstream=0L;
-  boolean Bit;
-  int Level=0;
-  int iEnd = RawSignal[RawIndexStart] - 2; //-2 omdat de space/pulse van de stopbit geen deel meer van signaal uit maakt.
-  int i=3; // RawSignal[3] is de eerste van een T,xT,T,xT combinatie
-  // nieuwe KAKU bestaat altijd uit start bit + 32 bits + evt 4 dim bits. Ongelijk, dan geen NewKAKU
-  if (RawSignal[RawIndexStart]!=NewKAKU_RawSignalLength && (RawSignal[RawIndexStart]!=NewKAKUdim_RawSignalLength))return 0L;
+ulong RawSignal_2_NewKAKU(uint RawIndexStart) {
+	ulong bitstream=0L;
+	boolean Bit;
+	int Level=0;
+	int iEnd = RawSignal[RawIndexStart] - 2; //-2 omdat de space/pulse van de stopbit geen deel meer van signaal uit maakt.
+	int i=3; // RawSignal[3] is de eerste van een T,xT,T,xT combinatie
+	// nieuwe KAKU bestaat altijd uit start bit + 32 bits + evt 4 dim bits. Ongelijk, dan geen NewKAKU
+	if (RawSignal[RawIndexStart] != NewKAKU_RawSignalLength && (RawSignal[RawIndexStart] != NewKAKUdim_RawSignalLength)) {
+		return 0L;
+	}
 
   // RawSignal[0] bevat aantal pulsen * 2  => negeren
   // RawSignal[1] bevat startbit met tijdsduur van 1T => negeren
