@@ -73,7 +73,9 @@ byte CommandError(unsigned long Content)
     //test; geen, altijd goed
     case CMD_ERROR:
     case CMD_WAITFREERF:
+#ifdef USERVAR
     case CMD_VARIABLE_EVENT:
+#endif
     case CMD_DLS_EVENT:
     case CMD_CLOCK_EVENT_DAYLIGHT:
     case CMD_CLOCK_EVENT_ALL:
@@ -113,13 +115,16 @@ byte CommandError(unsigned long Content)
       if(Par2!=0)return ERROR_PAR2;
       return false;
 
+#ifdef USERVAR
     case CMD_VARIABLE_SET:
+#endif
     case CMD_TIMER_SET_SEC:
     case CMD_TIMER_SET_MIN:
       if(Par1>USER_VARIABLES_MAX)return ERROR_PAR1;
       return false;
 
     // test:Par1 binnen bereik maximaal beschikbare variabelen
+#ifdef USERVAR
     case CMD_VARIABLE_INC:
     case CMD_VARIABLE_DEC:
     case CMD_BREAK_ON_VAR_NEQU:
@@ -135,6 +140,7 @@ byte CommandError(unsigned long Content)
       if(Par1<1 || Par1>USER_VARIABLES_MAX)return ERROR_PAR1;
       if(Par2<1 || Par2>USER_VARIABLES_MAX)return ERROR_PAR2;
       return false;
+#endif
 
 #ifdef WIRED // RKR make optional to save space
     // test:Par1 binnen bereik maximaal beschikbare variabelen, Par2 is een geldige WIRED_IN
@@ -220,11 +226,15 @@ byte CommandError(unsigned long Content)
         case VALUE_SOURCE_IR:
         case VALUE_SOURCE_RF:
         case VALUE_SOURCE_SERIAL:
+#ifdef WIRED
         case VALUE_SOURCE_WIRED:
+#endif
         case VALUE_SOURCE_EVENTLIST:
         case VALUE_SOURCE_SYSTEM:
         case VALUE_SOURCE_TIMER:
+#ifdef USERVAR // RKR make optional to save space
         case VALUE_SOURCE_VARIABLE:
+#endif
         case VALUE_SOURCE_CLOCK:
           break;
         default:
@@ -330,13 +340,11 @@ boolean ExecuteCommand(unsigned long Content, int Src, unsigned long PreviousCon
         SaveSettings();
         break;
 #endif
-#ifdef USERVAR // RKR make optional to save space
-#ifdef WIRED // RKR make optional to save space
+#if defined(USERVAR) && defined(WIRED) // RKR make optional to save space
       case CMD_VARIABLE_WIRED_ANALOG:
         S.UserVar[Par1-1]=WiredAnalog(Par2-1);
         SaveSettings();
         break;
-#endif
 #endif
 #ifdef USERVAR // RKR make optional to save space
 	case CMD_BREAK_ON_VAR_EQU:

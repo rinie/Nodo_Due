@@ -44,8 +44,8 @@
 \**************************************************************************************************************************/
 
 // strings met vaste tekst naar PROGMEM om hiermee RAM-geheugen te sparen.
-prog_char PROGMEM Text_01[] = "Nodo-Due Domotica controller (c) Copyright 2011 P.K.Tonkes.";
-prog_char PROGMEM Text_02[] = "Licensed under GNU General Public License.";
+prog_char PROGMEM Text_01[] = "Nodo-Due (c) Copyright 2011 P.K.Tonkes.";
+prog_char PROGMEM Text_02[] = "License: GNU General Public License.";
 prog_char PROGMEM Text_03[] = "Line=";
 prog_char PROGMEM Text_04[] = "SunMonTueWedThuFriSat";
 prog_char PROGMEM Text_06[] = "Unknown command: ";
@@ -71,11 +71,15 @@ prog_char PROGMEM Text_16[] = "Action=";
 #define VALUE_SOURCE_IR_RF 4
 #define VALUE_SOURCE_RF 5
 #define VALUE_SOURCE_SERIAL 6
+#ifdef WIRED
 #define VALUE_SOURCE_WIRED 7
+#endif
 #define VALUE_SOURCE_EVENTLIST 8
 #define VALUE_SOURCE_SYSTEM 9
 #define VALUE_SOURCE_TIMER 10
+#ifdef USERVAR // RKR make optional to save space
 #define VALUE_SOURCE_VARIABLE 11
+#endif
 #define VALUE_SOURCE_CLOCK 12
 #define VALUE_TRACE 13
 #define VALUE_TAG 14
@@ -96,10 +100,12 @@ prog_char PROGMEM Text_16[] = "Action=";
 #define VALUE_RES6 29
 #define VALUE_RES3 30
 #define CMD_ANALYSE_SETTINGS 31
+#ifdef USERVAR // RKR make optional to save space
 #define CMD_BREAK_ON_VAR_EQU 32
 #define CMD_BREAK_ON_VAR_LESS 33
 #define CMD_BREAK_ON_VAR_MORE 34
 #define CMD_BREAK_ON_VAR_NEQU 35
+#endif
 #define CMD_CLOCK_DATE 36
 #define CMD_CLOCK_YEAR 37
 #define CMD_CLOCK_TIME 38
@@ -127,23 +133,33 @@ prog_char PROGMEM Text_16[] = "Action=";
 #define CMD_DISPLAY 60
 #define CMD_UNIT 61
 #define CMD_WAITBUSY 62
+#ifdef USERVAR // RKR make optional to save space
 #define CMD_VARIABLE_DEC 63
 #define CMD_VARIABLE_INC 64
 #define CMD_VARIABLE_SET 65
 #define CMD_VARIABLE_VARIABLE 66
+#endif
+#ifdef defined(USERVAR) && defined(WIRED) // RKR make optional to save space
 #define CMD_VARIABLE_WIRED_ANALOG 67
+#endif
 #define CMD_WAITFREERF 68
+#ifdef WIRED
 #define CMD_WIRED_ANALOG 69
 #define CMD_WIRED_OUT 70
 #define CMD_WIRED_PULLUP 71
 #define CMD_WIRED_SMITTTRIGGER 72
 #define CMD_WIRED_THRESHOLD 73
+#endif
 #define CMD_SEND_USEREVENT 74
 #define CMD_COPYSIGNAL 75
 #define CMD_COMMAND_WILDCARD 76
 #define CMD_SENDBUSY 77
+#ifdef USERVAR // RKR make optional to save space
 #define CMD_SEND_VAR_USEREVENT 78
+#endif
+#ifdef WIRED
 #define CMD_WIRED_RANGE 79
+#endif
 #define CMD_COMMAND_RES4 80
 #define CMD_BOOT_EVENT 81
 #define CMD_CLOCK_EVENT_DAYLIGHT 82
@@ -159,8 +175,12 @@ prog_char PROGMEM Text_16[] = "Action=";
 #define CMD_KAKU 92
 #define CMD_KAKU_NEW 93
 #define CMD_TIMER_EVENT 94
+#ifdef WIRED
 #define CMD_WIRED_IN_EVENT 95
+#endif
+#ifdef USERVAR // RKR make optional to save space
 #define CMD_VARIABLE_EVENT 96
+#endif
 #define CMD_BUSY 97
 #define CMD_res 98
 #define CMD_ERROR 99
@@ -174,11 +194,19 @@ prog_char PROGMEM Cmd_3[]="IR";
 prog_char PROGMEM Cmd_4[]="IR&RF";
 prog_char PROGMEM Cmd_5[]="RF";
 prog_char PROGMEM Cmd_6[]="Serial";
+#ifdef WIRED
 prog_char PROGMEM Cmd_7[]="Wired";
+#else
+prog_char PROGMEM Cmd_7[]="";
+#endif
 prog_char PROGMEM Cmd_8[]="EventList";
 prog_char PROGMEM Cmd_9[]="System";
 prog_char PROGMEM Cmd_10[]="Timers";
+#ifdef USERVAR // RKR make optional to save space
 prog_char PROGMEM Cmd_11[]="Variables";
+#else
+prog_char PROGMEM Cmd_11[]="";
+#endif
 prog_char PROGMEM Cmd_12[]="Clock";
 prog_char PROGMEM Cmd_13[]="Trace";
 prog_char PROGMEM Cmd_14[]="Tag";
@@ -199,10 +227,17 @@ prog_char PROGMEM Cmd_28[]="On";
 prog_char PROGMEM Cmd_29[]=""; // reserve
 prog_char PROGMEM Cmd_30[]=""; // reserve
 prog_char PROGMEM Cmd_31[]="ReceiveSettings";
+#ifdef USERVAR // RKR make optional to save space
 prog_char PROGMEM Cmd_32[]="BreakOnVarEqu";
 prog_char PROGMEM Cmd_33[]="BreakOnVarLess";
 prog_char PROGMEM Cmd_34[]="BreakOnVarMore";
 prog_char PROGMEM Cmd_35[]="BreakOnVarNEqu";
+#else
+prog_char PROGMEM Cmd_32[]="";
+prog_char PROGMEM Cmd_33[]="";
+prog_char PROGMEM Cmd_34[]="";
+prog_char PROGMEM Cmd_35[]="";
+#endif
 prog_char PROGMEM Cmd_36[]="ClockSetDate";
 prog_char PROGMEM Cmd_37[]="ClockSetYear";
 prog_char PROGMEM Cmd_38[]="ClockSetTime";
@@ -230,23 +265,50 @@ prog_char PROGMEM Cmd_59[]="TimerSetMin";
 prog_char PROGMEM Cmd_60[]="Display";
 prog_char PROGMEM Cmd_61[]="Unit";
 prog_char PROGMEM Cmd_62[]="WaitBusy";
+#ifdef USERVAR // RKR make optional to save space
 prog_char PROGMEM Cmd_63[]="VariableDec";
 prog_char PROGMEM Cmd_64[]="VariableInc";
 prog_char PROGMEM Cmd_65[]="VariableSet";
 prog_char PROGMEM Cmd_66[]="VariableVariable";
+#else
+prog_char PROGMEM Cmd_63[]="";
+prog_char PROGMEM Cmd_64[]="";
+prog_char PROGMEM Cmd_65[]="";
+prog_char PROGMEM Cmd_66[]="";
+#endif
+#if defined(USERVAR) && defined(WIRED) // RKR make optional to save space
 prog_char PROGMEM Cmd_67[]="VariableWiredAnalog";
+#else
+prog_char PROGMEM Cmd_67[]="";
+#endif
 prog_char PROGMEM Cmd_68[]="WaitFreeRF";
+#ifdef WIRED
 prog_char PROGMEM Cmd_69[]="WiredAnalog";
 prog_char PROGMEM Cmd_70[]="WiredOut";
 prog_char PROGMEM Cmd_71[]="WiredPullup";
 prog_char PROGMEM Cmd_72[]="WiredSmittTrigger";
 prog_char PROGMEM Cmd_73[]="WiredThreshold";
+#else
+prog_char PROGMEM Cmd_69[]="";
+prog_char PROGMEM Cmd_70[]="";
+prog_char PROGMEM Cmd_71[]="";
+prog_char PROGMEM Cmd_72[]="";
+prog_char PROGMEM Cmd_73[]="";
+#endif
 prog_char PROGMEM Cmd_74[]="SendUserEvent";
 prog_char PROGMEM Cmd_75[]="RawSignalCopy";
 prog_char PROGMEM Cmd_76[]="WildCard";
 prog_char PROGMEM Cmd_77[]="SendBusy";
+#ifdef USERVAR // RKR make optional to save space
 prog_char PROGMEM Cmd_78[]="SendVarUserEvent";
+#else
+prog_char PROGMEM Cmd_78[]="";
+#endif
+#ifdef WIRED
 prog_char PROGMEM Cmd_79[]="WiredRange";
+#else
+prog_char PROGMEM Cmd_79[]="";
+#endif
 prog_char PROGMEM Cmd_80[]=""; // reserve
 prog_char PROGMEM Cmd_81[]="Boot";
 prog_char PROGMEM Cmd_82[]="ClockDaylight";
@@ -262,8 +324,16 @@ prog_char PROGMEM Cmd_91[]=""; // reserve
 prog_char PROGMEM Cmd_92[]="KAKU";
 prog_char PROGMEM Cmd_93[]="NewKAKU";
 prog_char PROGMEM Cmd_94[]="Timer";
+#ifdef WIRED
 prog_char PROGMEM Cmd_95[]="WiredIn";
+#else
+prog_char PROGMEM Cmd_95[]="";
+#endif
+#ifdef USERVAR // RKR make optional to save space
 prog_char PROGMEM Cmd_96[]="Variable";
+#else
+prog_char PROGMEM Cmd_96[]="";
+#endif
 prog_char PROGMEM Cmd_97[]="Busy";
 prog_char PROGMEM Cmd_98[]=""; // reserve
 prog_char PROGMEM Cmd_99[]="Error"; // deze moet altijd op  blijven
@@ -529,33 +599,72 @@ void loop()
         SerialHold(false);
         }
       }while(millis()<StaySharpTimer);
-
-    // IR: *************** kijk of er data staat op IR en genereer een event als er een code ontvangen is **********************
-    do
-      {
-      if((*portInputRegister(IRport)&IRbit)==0)// Kijk if er iets op de IR poort binnenkomt. (Pin=LAAG als signaal in de ether).
-        {
-        if(FetchSignal(IR_ReceiveDataPin,LOW,S.AnalyseTimeOut, 0))// Als het een duidelijk IR signaal was
-          {
-#ifdef RAWSIGNAL_MULTI
-			RawSignal[RawSignal[0] + 1] = 0;  // next count 0
+#if 1
+	if (!RawsignalGet) {
 #endif
-          Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
-          if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
-            {
-            StaySharpTimer=millis()+SHARP_TIME;
-            if(Content==Checksum && (millis()>SupressRepeatTimer || Content!=ContentPrevious))// tweede maal ontvangen als checksum
-               {
-               SupressRepeatTimer=millis()+ENDSIGNAL_TIME; // zodat herhalingen niet opnieuw opgepikt worden
-               ProcessEvent(Content,VALUE_DIRECTION_INPUT,VALUE_SOURCE_IR,0,0); // verwerk binnengekomen event.
-               ContentPrevious=Content;
-               }
-            Checksum=Content;
-            }
-          }
-        }
-      }while(StaySharpTimer>millis());
+		// IR: *************** kijk of er data staat op IR en genereer een event als er een code ontvangen is **********************
+		do
+		  {
+		  if((*portInputRegister(IRport)&IRbit)==0)// Kijk if er iets op de IR poort binnenkomt. (Pin=LAAG als signaal in de ether).
+			{
+			if(FetchSignal(IR_ReceiveDataPin,LOW,S.AnalyseTimeOut, 0))// Als het een duidelijk IR signaal was
+			  {
+	#ifdef RAWSIGNAL_MULTI
+				RawSignal[RawSignal[0] + 1] = 0;  // next count 0
+	#endif
+			  Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
+			  if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
+				{
+				StaySharpTimer=millis()+SHARP_TIME;
+				if(Content==Checksum && (millis()>SupressRepeatTimer || Content!=ContentPrevious))// tweede maal ontvangen als checksum
+				   {
+				   SupressRepeatTimer=millis()+ENDSIGNAL_TIME; // zodat herhalingen niet opnieuw opgepikt worden
+				   ProcessEvent(Content,VALUE_DIRECTION_INPUT,VALUE_SOURCE_IR,0,0); // verwerk binnengekomen event.
+				   ContentPrevious=Content;
+				   }
+				Checksum=Content;
+				}
+			  }
+			}
+		  }while(StaySharpTimer>millis());
+#if 1
+	}
+	else { // RKR RawsignalGet measure repetitions
+		int RawSignalStart = 0;
+	    //StaySharpTimer=millis()+SHARP_TIME;
 
+		// RF: *************** kijk of er data start op IR en genereer een event als er een code ontvangen is **********************
+		do// met StaySharp wordt focus gezet op luisteren naar IR, doordat andere input niet wordt opgepikt
+		  {
+		  while((*portInputRegister(IRport)&IRbit)==0)// Kijk if er iets op de IR poort binnenkomt. (Pin=LAAG als signaal in de ether).
+			{ulong StartSignalTime = millis();
+			if(FetchSignal(IR_ReceiveDataPin,LOW,SIGNAL_TIMEOUT_IR/2, RawSignalStart))// Als het een duidelijk IR signaal was
+			  {
+				  	if (RawSignalStart == 0) { //inter messages time
+						RawStartSignalTime = StartSignalTime;
+					}
+					RawSignalStart = RawSignalStart + RawSignal[RawSignalStart] + 2;
+					 // intra message time
+					StartSignalTime -= (StaySharpTimer  - SHARP_TIME*2);
+					RawSignal[RawSignalStart-1] = (StartSignalTime > 0) ? StartSignalTime : 1;
+
+					StaySharpTimer=millis()+SHARP_TIME*2;
+			}
+			else { // Noise/Spikes
+					break;
+			}
+		  }
+		} while(millis()<StaySharpTimer);
+	    RawSignal[RawSignalStart]=0; // next count 0
+	    if (RawSignalStart > 0){
+			Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
+			if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
+			{
+			   ProcessEvent(Content,VALUE_DIRECTION_INPUT,VALUE_SOURCE_IR,0,0); // verwerk binnengekomen event.
+			}
+		}
+	}
+#endif
 	if (!RawsignalGet) {
 		// RF: *************** kijk of er data start op RF en genereer een event als er een code ontvangen is **********************
 		do// met StaySharp wordt focus gezet op luisteren naar RF, doordat andere input niet wordt opgepikt

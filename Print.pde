@@ -223,9 +223,11 @@ void PrintEventCode(ulong Code)
 
       // Par1 als waarde en par2 als tekst
       case CMD_DELAY:
+#ifdef WIRED
       case CMD_WIRED_PULLUP:
       case CMD_WIRED_OUT:
       case CMD_WIRED_IN_EVENT:
+#endif
         P1=P_VALUE;
         P2=P_TEXT;
         break;

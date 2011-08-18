@@ -501,6 +501,7 @@ void Status(boolean ToSerial, byte Par1, byte Par2)
         {
         switch(x)
           {
+#ifdef WIRED
           case CMD_WIRED_ANALOG:
           case CMD_WIRED_OUT:
           case CMD_WIRED_PULLUP:
@@ -511,7 +512,10 @@ void Status(boolean ToSerial, byte Par1, byte Par2)
             Par1_Start=1;
             Par1_End=4;
             break;
+#endif
+#ifdef USERVAR
           case CMD_VARIABLE_SET:
+#endif
           case CMD_TIMER_SET_MIN:
             Par1_Start=1;
             Par1_End=15;

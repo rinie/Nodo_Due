@@ -136,8 +136,8 @@ void PrintNumHex(uint x, char c, uint digits) {
 #undef RKRDOUBLE_SHORT
 // todo: add byte/nibble length, stopBit
 void RkrPreAmbleAnalyse(boolean fBitWise, boolean fSkipEven) {
-	uint iTimeSplitPulse = RawSignal[Ook.iTimeRange[ixPulse] + 2]; //max Short
-	uint iTimeSplitSpace = RawSignal[Ook.iTimeRange[ixSpace] + 2]; //max Short
+	uint iTimeSplitPulse = (RawSignal[Ook.iTimeRange[ixPulse] + 2] + RawSignal[Ook.iTimeRange[ixPulse] + 3]) / 2; //max Short + min long /2
+	uint iTimeSplitSpace = (RawSignal[Ook.iTimeRange[ixSpace] + 2] + RawSignal[Ook.iTimeRange[ixSpace] + 2]) / 2; //max Short + min long / 2
 	uint xEnd = Ook.iTimeEnd;
 	boolean isLongPreamblePulse = RawSignal[Ook.iTime + 3] > iTimeSplitPulse;
 	boolean isLongPreambleSpace = RawSignal[Ook.iTime + 4] > iTimeSplitSpace;
@@ -231,22 +231,28 @@ void RkrPreAmbleAnalyse(boolean fBitWise, boolean fSkipEven) {
 }
 
 // 938-952/2043-2053
-void RkrSyncPulseSpaceAnalyse() {
-	uint iTimeSplit = RawSignal[Ook.iTimeRange[ixPulseSpace] + 2];
+void RkrSyncPulseSpaceAnalyse(boolean fBitWise) {
+	uint iTimeSplit = (RawSignal[Ook.iTimeRange[ixPulseSpace] + 2] + RawSignal[Ook.iTimeRange[ixPulseSpace] + 3]) / 2; // max short pulse + space
 	uint xEnd = Ook.iTimeEnd;
 	uint iBits = 0;
 	byte byteValLSB= 0;
 	uint x;
 
-	Serial.print("SyncP+S ");
+	Serial.print("SyncP+S");
+	PrintNum(iTimeSplit, ' ', 4);
 	// 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
 	for (x = 3 + Ook.iTime; x <= xEnd-1; x+=2) {
 		boolean isLong = (RawSignal[x] + RawSignal[x + 1]) > iTimeSplit;
 		byteValLSB = (byteValLSB << 1) | ((isLong) ? 0x01 : 0);
+		if (fBitWise) {
+			PrintNumHex(((isLong) ? 1 : 0), ((iBits == 0)) ? ' ' : 0, 0);
+		}
 		iBits++;
 		if (iBits >=8) {
 			iBits = 0;
-			PrintNumHex(byteValLSB, ' ', 2);
+			if (!fBitWise) {
+				PrintNumHex(byteValLSB, ' ', 2);
+			}
 			byteValLSB = 0;
 		}
 	}
@@ -335,7 +341,7 @@ void RkrTimeRangePsReplaceMedian() {
 		for (i = 1; i < iEnd; i+=2) {
 				uint Min = RawSignal[iTimeRange + i];
 				uint Max = RawSignal[iTimeRange + i + 1];
-				uint Median = Min + (Max-Min) / 2;
+				uint Median = (Min + Max) / 2;
 #ifdef 	RKR_MEDIANROUNDING	// Try Median rounding
 				Median = RkrRoundTime(Median);
 #endif
@@ -688,7 +694,8 @@ void PrintRawSignal(uint iTime) {
 	}
 	// 1,2,2 or 2,1,2 signals: double min/max pairs...
 	if ((Ook_NrTimeRanges(ixPulseSpace)==2) && ((Ook_NrTimeRanges(ixPulse)==1) || (Ook_NrTimeRanges(ixSpace)==1))) { // x10 like
-		RkrSyncPulseSpaceAnalyse(); // seems ok for 44 X10...
+		RkrSyncPulseSpaceAnalyse(false); // seems ok for 44 X10...
+		RkrSyncPulseSpaceAnalyse(true); // seems ok for 44 X10...
 	}
 #endif
 }
