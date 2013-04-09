@@ -359,9 +359,9 @@ void SerialHold(boolean x)
   else
     {
     if(x)
-      Serial.print(XOFF,BYTE);
+      Serial.write(XOFF);
     else
-      Serial.print(XON,BYTE);
+      Serial.write(XON);
     previous=x;
     }
   }

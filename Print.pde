@@ -166,7 +166,7 @@ void PrintLine(void)
  \*********************************************************************************************/
 void PrintChar(byte S)
   {
-  Serial.print(S, BYTE);
+  Serial.write(S);
   }
 
 
@@ -292,7 +292,7 @@ void PrintEventCode(ulong Code)
           PrintValue(Par1);
           break;
         case P_KAKU:
-          Serial.print('A'+((Par1&0xf0)>>4),BYTE); //  A..P printen.
+          PrintChar('A'+((Par1&0xf0)>>4)); //  A..P printen.
           PrintValue(Par2_b&0x2?0:(Par1&0xF)+1);// als 2e bit in Par2 staat, dan is het een groep commando en moet adres '0' zijn.
           Par2=(Par2&0x1)?VALUE_ON:VALUE_OFF;
           break;
@@ -336,8 +336,8 @@ void PrintEventCode(ulong Code)
 void PrintTerm()
   {
   // FreeMemory();//??? t.b.v. debugging
-  if(SERIAL_TERMINATOR_1)Serial.print(SERIAL_TERMINATOR_1,BYTE);
-  if(SERIAL_TERMINATOR_2)Serial.print(SERIAL_TERMINATOR_2,BYTE);
+  if(SERIAL_TERMINATOR_1)PrintChar(SERIAL_TERMINATOR_1);
+  if(SERIAL_TERMINATOR_2)PrintChar(SERIAL_TERMINATOR_2);
   }
 
 
@@ -381,7 +381,7 @@ void PrintEventlistEntry(int entry, byte d)
 void PrintDateTime(void)
     {
     // Print de dag. 1=zondag, 0=geen RTC aanwezig
-    for(byte x=0;x<=2;x++)Serial.print(*(Text(Text_04)+(Time.Day-1)*3+x),BYTE);
+    for(byte x=0;x<=2;x++)PrintChar(*(Text(Text_04)+(Time.Day-1)*3+x));
     PrintChar(' ');
 
     // print year.
@@ -452,7 +452,8 @@ void PrintWelcome(void)
     PrintTerm();
     }
 #ifdef RAWSIGNAL_TOGGLE
-	Serial.print("rawsignalget; on");
+	//Serial.print("rawsignalget; on");
+	Serial.print("raw");
     PrintTerm();
 #endif
   PrintLine();
