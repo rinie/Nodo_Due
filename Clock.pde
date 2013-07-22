@@ -1,4 +1,4 @@
-
+#ifdef CLOCK // RKR make optional to save space
 /**********************************************************************************************\
  *
  * Deze functie vult de globale variabele Time.DayLight met de status van zonsopkomst & -opgang
@@ -188,5 +188,5 @@ unsigned long ClockRead(void)
          ((unsigned long)(Time.Hour))<<8 |
          ((unsigned long)(Time.Minutes));
   }
-
+#endif
 

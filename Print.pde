@@ -28,7 +28,9 @@ void PrintEvent(ulong Content, byte Port, byte Direction)
   // als ingesteld staat dat seriële input niet weergegeven moet worden en de poort was serieel, dan direct terug
   if(!(S.Display&DISPLAY_SERIAL) && Port==VALUE_SOURCE_SERIAL && Direction==VALUE_DIRECTION_INPUT)
     return;
-
+#ifdef AVR_LIRC // lirc binary ...
+	return;
+#endif
   // datum en tijd weergeven
   if(S.Display&DISPLAY_TIMESTAMP && Time.Day) // Time.Day=true want dan is er een RTC aanwezig.
     {
@@ -260,8 +262,10 @@ void PrintEventCode(ulong Code)
       // Par1 als waarde en par2 niet
       case CMD_UNIT:
       case CMD_DIVERT:
+#ifdef CLOCK // RKR make optional to save space
       case CMD_SIMULATE_DAY:
       case CMD_CLOCK_DOW:
+#endif
         P1=P_VALUE;
         P2=P_NOT;
         break;
@@ -438,7 +442,7 @@ void PrintWelcome(void)
   PrintText(Text_13);
   PrintValue(S.Unit);
   PrintTerm();
-
+#ifdef CLOCK // RKR make optional to save space
   if(Time.Day)
     {
     PrintText(Text_10);
@@ -451,6 +455,7 @@ void PrintWelcome(void)
       }
     PrintTerm();
     }
+#endif
 #ifdef RAWSIGNAL_TOGGLE
 	//Serial.print("rawsignalget; on");
 	Serial.print("raw");

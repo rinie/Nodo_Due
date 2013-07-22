@@ -1,0 +1,10 @@
+avrlirc.txt
+
+ ./avrlirc2udp -t /dev/ttyACM0 -h localhost
+ Arduino on ttyACM0 with 38400 baudrate
+ 
+ lircd on pi
+ sudo lircd --driver=udp
+ 
+ mode2 --driver=udp
+ 

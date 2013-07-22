@@ -44,7 +44,7 @@
 \**************************************************************************************************************************/
 
 // strings met vaste tekst naar PROGMEM om hiermee RAM-geheugen te sparen.
-prog_char PROGMEM Text_01[] = "Nodo-Due (c) Copyright 2011 P.K.Tonkes.";
+prog_char PROGMEM Text_01[] = "Nodo-DueRkr (c)2011 P.K.Tonkes.";
 prog_char PROGMEM Text_02[] = "License: GNU General Public License.";
 prog_char PROGMEM Text_03[] = "Line=";
 prog_char PROGMEM Text_04[] = "SunMonTueWedThuFriSat";
@@ -106,10 +106,12 @@ prog_char PROGMEM Text_16[] = "Action=";
 #define CMD_BREAK_ON_VAR_MORE 34
 #define CMD_BREAK_ON_VAR_NEQU 35
 #endif
+#ifdef CLOCK // RKR make optional to save space
 #define CMD_CLOCK_DATE 36
 #define CMD_CLOCK_YEAR 37
 #define CMD_CLOCK_TIME 38
 #define CMD_CLOCK_DOW 39
+#endif
 #define CMD_DELAY 40
 #define CMD_DIVERT 41
 #define CMD_EVENTLIST_ERASE 42
@@ -162,6 +164,7 @@ prog_char PROGMEM Text_16[] = "Action=";
 #endif
 #define CMD_COMMAND_RES4 80
 #define CMD_BOOT_EVENT 81
+#ifdef CLOCK // RKR make optional to save space
 #define CMD_CLOCK_EVENT_DAYLIGHT 82
 #define CMD_CLOCK_EVENT_ALL 83
 #define CMD_CLOCK_EVENT_SUN 84
@@ -171,6 +174,7 @@ prog_char PROGMEM Text_16[] = "Action=";
 #define CMD_CLOCK_EVENT_THU 88
 #define CMD_CLOCK_EVENT_FRI 89
 #define CMD_CLOCK_EVENT_SAT 90
+#endif
 #define CMD_RES_91 91
 #define CMD_KAKU 92
 #define CMD_KAKU_NEW 93
@@ -207,7 +211,11 @@ prog_char PROGMEM Cmd_11[]="Variables";
 #else
 prog_char PROGMEM Cmd_11[]="";
 #endif
+#ifdef CLOCK // RKR make optional to save space
 prog_char PROGMEM Cmd_12[]="Clock";
+#else
+prog_char PROGMEM Cmd_12[]="";
+#endif
 prog_char PROGMEM Cmd_13[]="Trace";
 prog_char PROGMEM Cmd_14[]="Tag";
 prog_char PROGMEM Cmd_15[]="Timestamp";
@@ -238,10 +246,17 @@ prog_char PROGMEM Cmd_33[]="";
 prog_char PROGMEM Cmd_34[]="";
 prog_char PROGMEM Cmd_35[]="";
 #endif
+#ifdef CLOCK // RKR make optional to save space
 prog_char PROGMEM Cmd_36[]="ClockSetDate";
 prog_char PROGMEM Cmd_37[]="ClockSetYear";
 prog_char PROGMEM Cmd_38[]="ClockSetTime";
 prog_char PROGMEM Cmd_39[]="ClockSetDOW";
+#else
+prog_char PROGMEM Cmd_36[]="";
+prog_char PROGMEM Cmd_37[]="";
+prog_char PROGMEM Cmd_38[]="";
+prog_char PROGMEM Cmd_39[]="";
+#endif
 prog_char PROGMEM Cmd_40[]="Delay";
 prog_char PROGMEM Cmd_41[]="Divert";
 prog_char PROGMEM Cmd_42[]="EventlistErase";
@@ -311,6 +326,7 @@ prog_char PROGMEM Cmd_79[]="";
 #endif
 prog_char PROGMEM Cmd_80[]=""; // reserve
 prog_char PROGMEM Cmd_81[]="Boot";
+#ifdef CLOCK // RKR make optional to save space
 prog_char PROGMEM Cmd_82[]="ClockDaylight";
 prog_char PROGMEM Cmd_83[]="ClockAll";
 prog_char PROGMEM Cmd_84[]="ClockSun";
@@ -320,6 +336,17 @@ prog_char PROGMEM Cmd_87[]="ClockWed";
 prog_char PROGMEM Cmd_88[]="ClockThu";
 prog_char PROGMEM Cmd_89[]="ClockFri";
 prog_char PROGMEM Cmd_90[]="ClockSat";
+#else
+prog_char PROGMEM Cmd_82[]="";
+prog_char PROGMEM Cmd_83[]="";
+prog_char PROGMEM Cmd_84[]="";
+prog_char PROGMEM Cmd_85[]="";
+prog_char PROGMEM Cmd_86[]="";
+prog_char PROGMEM Cmd_87[]="";
+prog_char PROGMEM Cmd_88[]="";
+prog_char PROGMEM Cmd_89[]="";
+prog_char PROGMEM Cmd_90[]="";
+#endif
 prog_char PROGMEM Cmd_91[]=""; // reserve
 prog_char PROGMEM Cmd_92[]="KAKU";
 prog_char PROGMEM Cmd_93[]="NewKAKU";
@@ -396,7 +423,11 @@ PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,31
 #define NODO_TYPE_EVENT              1
 #define NODO_TYPE_COMMAND            2
 
+#ifndef AVR_LIRC
 #define BAUD                     57600 // Baudrate voor seriële communicatie. RKR 19200->57600 Abd CR/LF instead of just LF
+#else
+#define BAUD                     38400 // Baudrate voor seriële communicatie. RKR 19200->57600 Abd CR/LF instead of just LF
+#endif
 #define SERIAL_TERMINATOR_1       0x0D // Met dit teken wordt een regel afgesloten. 0x0A is een linefeed <LF>, default voor EventGhost
 #define SERIAL_TERMINATOR_2       0x0A // Met dit teken wordt een regel afgesloten. 0x0D is een Carriage Return <CR>, 0x00 = niet in gebruik.
 
@@ -445,8 +476,10 @@ PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,31
   byte    WaitFreeRF_Delay;
   boolean SendBusy;
   boolean WaitBusy;
+#ifdef CLOCK
   boolean DaylightSaving;
   int     DaylightSavingSet;
+#endif
   boolean EnableSound; // RKR kill sound
   }S;
 
@@ -540,15 +573,18 @@ void setup()
     }
 #endif
   //Zorg ervoor dat er niet direct na een boot een CMD_CLOCK_DAYLIGHT event optreedt
+#ifdef CLOCK // RKR make optional to save space
   ClockRead();
   SetDaylight();
   DaylightPrevious=Time.Daylight;
-
+#endif
 #ifdef WIRED // RKR make optional to save space
   // Zet statussen WIRED_IN op hoog, anders wordt direct wij het opstarten vier maal een event gegenereerd omdat de pull-up weerstand analoge de waarden op FF zet
   for(x=0;x<4;x++){WiredInputStatus[x]=true;}
 #endif
+#ifndef AVR_LIRC
   PrintWelcome();
+#endif
   ProcessEvent(command2event(CMD_BOOT_EVENT,0,0),VALUE_DIRECTION_INTERNAL,VALUE_SOURCE_SYSTEM,0,0);  // Voer het 'Boot' event uit.
   SerialHold(false);    // Zend een X-Off zodat de nodo geen seriele tekens ontvangt die nog niet verwerkt kunnen worden
   }
@@ -730,7 +766,7 @@ void loop()
     if(LoopIntervalTimer_2<millis()) // lange interval
       {
       LoopIntervalTimer_2=millis()+Loop_INTERVAL_2; // reset de timer
-
+#ifdef CLOCK // RKR make optional to save space
       // CLOCK: **************** Lees periodiek de realtime klok uit en check op events  ***********************
       Content=ClockRead(); // Lees de Real Time Clock waarden in de struct Time
       if(CheckEventlist(Content) && EventTimeCodePrevious!=Content)
@@ -749,6 +785,7 @@ void loop()
         DaylightPrevious=Time.Daylight;
         ProcessEvent(Content,VALUE_DIRECTION_INTERNAL,VALUE_SOURCE_CLOCK,0,0);      // verwerk binnengekomen event.
         }
+#endif
       }// lange interval
 
     // 1: niet tijdkritische processen die periodiek uitgevoerd moeten worden

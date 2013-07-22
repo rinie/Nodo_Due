@@ -174,10 +174,11 @@ boolean GetStatus(byte *Command, byte *Par1, byte *Par2)
       *Par1=S.Unit;
       break;
 
+#ifdef CLOCK // RKR make optional to save space
     case CMD_DLS_EVENT:
       *Par1=S.DaylightSaving?VALUE_ON:VALUE_OFF;
       break;
-
+#endif
     case CMD_SENDBUSY:
       *Par1=S.SendBusy?VALUE_ALL:VALUE_OFF;
       break;
@@ -200,16 +201,18 @@ boolean GetStatus(byte *Command, byte *Par1, byte *Par2)
       *Par2=S.TransmitRepeat;
       break;
 
+#ifdef CLOCK // RKR make optional to save space
     case CMD_CLOCK_EVENT_DAYLIGHT:
       *Par1=Time.Daylight;
       break;
-
+#endif
 #ifdef USERVAR // RKR make optional to save space
     case CMD_VARIABLE_SET:
       *Par1=xPar1;
       *Par2=S.UserVar[xPar1-1];
       break;
 #endif
+#ifdef CLOCK // RKR make optional to save space
     case CMD_CLOCK_DATE:
       *Par1=Time.Date;
       *Par2=Time.Month;
@@ -228,6 +231,7 @@ boolean GetStatus(byte *Command, byte *Par1, byte *Par2)
       *Par1=Time.Year/100;
       *Par2=Time.Year-2000;
       break;
+#endif
 #ifdef USERTIMER // RKR make optional to save space
     case CMD_TIMER_SET_MIN:
       *Par1=xPar1;
@@ -332,7 +336,9 @@ void ResetFactory(void)
   {
   S.EnableSound        = ENABLE_SOUND;
   Beep(2000,2000);
+#ifdef CLOCK // RKR make optional to save space
   ClockRead();
+#endif
 
   S.Version            = VERSION;
   S.Unit               = UNIT;
@@ -345,8 +351,9 @@ void ResetFactory(void)
   S.WaitBusy           = false;
   S.WaitFreeRF_Window  = 0;
   S.WaitFreeRF_Delay   = 0;
+#ifdef CLOCK // RKR make optional to save space
   S.DaylightSaving     = Time.DaylightSaving;
-
+#endif
 #ifdef WIRED // RKR make optional to save space
   for(byte x=0;x<4;x++)
     {

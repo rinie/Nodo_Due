@@ -550,7 +550,7 @@ int RkrTimeRange(uint MinTime, uint MaxTime, int What) {
  *	              != 0: measure repetitions before decoding...
  *
  */
-void PrintRawSignal(uint iTime) {
+void PrintRawSignalOokTimeRange(uint iTime) {
 	uint x, xEnd;
 	uint i;
 	byte iPrintPulseAndSpace = 3;
@@ -582,8 +582,10 @@ void PrintRawSignal(uint iTime) {
 	if (Ook.iTime <= 0) { // first signal/no repetition yet
 		//PrintEventCode(AnalyzeRawSignal(0));
 		//PrintTerm();
-		  ClockRead();
+#ifdef CLOCK // RKR make optional to save space
+		ClockRead();
 		PrintDateTime();
+#endif
 		PrintTerm();
 		Serial.print("* ");
 		// inter message time
@@ -699,4 +701,46 @@ void PrintRawSignal(uint iTime) {
 	}
 #endif
 }
+
+
+void PrintRawSignalAvrLirc(uint iTime) {
+	uint x, xEnd;
+	uint i;
+#if 0
+	byte iPrintPulseAndSpace = 3;
+#else
+	byte iPrintPulseAndSpace = 1; // just mark, space no mark + space
+#endif
+	Ook.iTime = iTime;
+	Ook.iTimeEnd = RawSignal[iTime] + iTime;
+	xEnd = Ook.iTimeEnd;
+#ifdef RAW_BUFFER_TIMERANGE_START
+	int iTimeRange = RAW_BUFFER_TIMERANGE_START;
+	RawSignal[iTimeRange] = 0;
+	Ook.iTimeRange[ixPulse] = iTimeRange;
+	Ook.iTimeRange[ixSpace] = iTimeRange;
+	Ook.iTimeRange[ixPulseSpace] = iTimeRange;
+#endif
+	i = 0;
+	for(int x=1+Ook.iTime;x<=xEnd;x++) {
+		i += RawSignal[x];
+	}
+
+	if (i <= 0) {
+		return;
+	}
+	emit_pulse_data(1+Ook.iTime, xEnd); // use AvrLirc code...
+}
+
+
+void PrintRawSignal(uint iTime) {
+#ifndef AVR_LIRC
+	PrintRawSignalOokTimeRange(iTime);
+#endif
+	PrintRawSignalAvrLirc(iTime);
+#ifdef AVR_LIRC_BINARY
+	PrintTerm();
+#endif
+}
+
 

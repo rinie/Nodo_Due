@@ -77,6 +77,7 @@ byte CommandError(unsigned long Content)
     case CMD_VARIABLE_EVENT:
 #endif
     case CMD_DLS_EVENT:
+#ifdef CLOCK // RKR make optional to save space
     case CMD_CLOCK_EVENT_DAYLIGHT:
     case CMD_CLOCK_EVENT_ALL:
     case CMD_CLOCK_EVENT_SUN:
@@ -86,6 +87,7 @@ byte CommandError(unsigned long Content)
     case CMD_CLOCK_EVENT_THU:
     case CMD_CLOCK_EVENT_FRI:
     case CMD_CLOCK_EVENT_SAT:
+#endif
     case CMD_STATUS:
     case CMD_DISPLAY: // ??? foutieve invoer nog afvangen
     case CMD_DELAY:
@@ -168,7 +170,7 @@ byte CommandError(unsigned long Content)
     case CMD_SIMULATE_DAY:
       if(Par1!=0 && Par1!=1 && Par1!=7)return ERROR_PAR1;
       return false;
-
+#ifdef CLOCK // RKR make optional to save space
     // geldig jaartal
     case CMD_CLOCK_YEAR:
       if(Par1>21)return ERROR_PAR1;
@@ -189,7 +191,7 @@ byte CommandError(unsigned long Content)
     case CMD_CLOCK_DOW:
       if(Par1<1 || Par1>7)return ERROR_PAR1;
       return false;
-
+#endif
 #ifdef WIRED // RKR make optional to save space
     // test:Par1 binnen bereik maximaal beschikbare wired poorten, Par2 [0..255]
     case CMD_WIRED_IN_EVENT:
@@ -235,8 +237,10 @@ byte CommandError(unsigned long Content)
 #ifdef USERVAR // RKR make optional to save space
         case VALUE_SOURCE_VARIABLE:
 #endif
+#ifdef CLOCK // RKR make optional to save space
         case VALUE_SOURCE_CLOCK:
           break;
+#endif
         default:
           return ERROR_PAR1;
         }
@@ -384,15 +388,17 @@ boolean ExecuteCommand(unsigned long Content, int Src, unsigned long PreviousCon
         TransmitCode(command2event(CMD_WIRED_ANALOG,Par1,WiredAnalog(Par1-1)),SIGNAL_TYPE_NODO);
         break;
 #endif
+#ifdef CLOCK // RKR make optional to save space
       case CMD_SIMULATE_DAY:
         if(Par1==0)Par1=1;
         SimulateDay(Par1);
         break;
+#endif
 
       case CMD_SEND_SIGNAL:
         TransmitCode(0L,SIGNAL_TYPE_UNKNOWN);
         break;
-
+#ifdef CLOCK // RKR make optional to save space
       case CMD_CLOCK_YEAR:
         x=Par1*100+Par2;
         Time.Year=x;
@@ -418,7 +424,7 @@ boolean ExecuteCommand(unsigned long Content, int Src, unsigned long PreviousCon
         Time.Day=Par1;
         ClockSet();
         break;
-
+#endif
 #ifdef USERTIMER // RKR make optional to save space
       case CMD_TIMER_SET_MIN:
         // Par1=timer, Par2=minuten. Timers werken op een resolutie van seconden maar worden door de gebruiker ingegeven in minuten

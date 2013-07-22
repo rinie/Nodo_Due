@@ -266,7 +266,7 @@ boolean CheckEvent(unsigned long Event, unsigned long MacroEvent)
     if(((Event   )&0xff)==0 || ((MacroEvent   )&0xff)==0){Event&=0xf0ffff00;MacroEvent&=0xf0ffff00;}
     if(MacroEvent==Event)return true;
     }
-
+#ifdef CLOCK // RKR make optional to save space
   // is er een match met een CLOCK_EVENT_ALL event?
   x=(Event>>16)&0xff;
   if(x>=CMD_CLOCK_EVENT_SUN && x<=CMD_CLOCK_EVENT_SAT) // het binnengekomen event is een clock event.
@@ -275,7 +275,7 @@ boolean CheckEvent(unsigned long Event, unsigned long MacroEvent)
       if((MacroEvent&0x0000ffff)==(Event&0x0000ffff)) // en tijdstippen kloppen
         return true;
     }
-
+#endif
   return false;
   }
 

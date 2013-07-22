@@ -1,0 +1,5 @@
+433 aan raspberry
+
+mode2 -d /dev/lirc0
+
+irrecord -d /dev/lirc0 kakunew
